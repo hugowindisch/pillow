@@ -209,7 +209,7 @@ console.log(stats);
     );
 }
 */
-function makePackage(
+function makePublishedPackage(
     details,
     outputfolder, 
     jsstream, 
@@ -229,7 +229,7 @@ function makePackage(
         },
         function (cb) {
             async.forEach(details.other, function (f, cb) {
-console.log('>>>> ' + details.name + ' ' + details.dirname + ' ' + f + ' ' + outputfolder)                    
+				//console.log('>>>> ' + details.name + ' ' + details.dirname + ' ' + f + ' ' + outputfolder)                    
                 publishAsset(
                     details.name, 
                     details.dirname, 
@@ -384,29 +384,42 @@ function processPackage(packageFile, outputfolder, cb) {
         });
     });    
 }*/
+/**
+    Processes a package.json file that has been loaded with its "details".
+*/
+function processPackageDetails(details, outputfolder,  cb) {
+    var dirname = details.dirname,
+        // we should use the package.name for the packagename
+        packagename = details.name,
+        publishdir = path.join(outputfolder, packagename),
+        publishJsStream = path.join(publishdir, packagename + '.js');
+   
+    console.log('publish ' + dirname + '  ' + packagename + ' ' + publishdir + ' ' + publishJsStream);
+    // create an output dir for this package
+    createFolder(publishdir, function (err) {
+        if (err) {
+            return cb(err);
+        }
+        var stream = fs.createWriteStream(publishJsStream);
+        makePublishedPackage(
+            details,
+            outputfolder, //publishdir, 
+            stream, 
+            cb
+        );
+    });
+}
+
+/**
+    Processes a package.json file.
+*/
 function processPackage(packageFile, outputfolder, cb) {
     // load the json file
     loadPackageDetails(packageFile, function (err, result) {
-        var dirname = result.dirname,
-            // we should use the package.name for the packagename
-            packagename = result.name,
-            publishdir = path.join(outputfolder, packagename),
-            publishJsStream = path.join(publishdir, packagename + '.js');
-       
-        console.log('publish ' + dirname + '  ' + packagename + ' ' + publishdir + ' ' + publishJsStream);
-        // create an output dir for this package
-        createFolder(publishdir, function (err) {
-            if (err) {
-                return cb(err);
-            }
-            var stream = fs.createWriteStream(publishJsStream);
-            makePackage(
-                result,
-                outputfolder, //publishdir, 
-                stream, 
-                cb
-            );
-        });
+        if (err) {
+            return cb(err);
+        }
+        processPackageDetails(result, outputfolder, cb);
     });    
 }
 
@@ -472,27 +485,96 @@ function findPackages(rootfolder, cb) {
     fp(rootfolder, results, cb);
 }
 
-
-if (process.argv.length === 4) {
+/**
+    This function regenerates all packages.
+*/
+function makeAll(srcFolder, dstFolder, cb) {
     findPackages(process.argv[2], function (err, packages) {
         if (err) {
-            console.log(err);            
+            return cb(err);
         }
-        console.log(packages);
         async.forEach(
             packages, 
-            function (p, cb) {
-                processPackage2(p, process.argv[3], cb);
-/*                loadPackageDetails(p, function (err, result) {
-                    console.log('---');
-                    console.log(result);
-                    cb(err);
-                });*/
+            function (p, cb) {            
+                processPackage(p, dstFolder, cb);
             },
-            function (err) {
-                console.log(err);
-            }
+            cb
         );
     });
-        
 }
+
+/**
+    This function regenerates a single package.
+*/
+function makePackage(srcFolder, dstFolder, packageName, cb) {
+    findPackages(process.argv[2], function (err, packages) {
+        var found = false;
+        if (err) {
+            return cb(err);
+        }
+        async.forEach(packages, function (e) {
+            // before doing anything lenghty, make sure it has chances
+            // of succeeding
+            if (e.indexOf(packageName) !== -1) {
+                // load the details
+                loadPackageDetails(e, function (err, result) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    if (result.name === packageName) {
+                        processPackageDetails(result, dstFolder, cb);
+                        found = true;
+                    } else {
+                        return cb(null);
+                    }
+                });
+            } else {
+                return cb(null);
+            }
+        }, function (err) {
+            if (!found) {
+                err = new Error("Package Not Found");
+            }
+            cb(err);
+        });
+    });        
+}
+
+/**
+    This function regenerates a single file.
+*/
+function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
+    // the provided relative path should be relative to the dstFolder
+    // and consequently the first subdir should be the package name
+    srcFolder = path.normalize(dstFolderRelativeFilePath);
+    var srcFolderRoot = srcFolder.split('/')[0];
+    // non optimal but ok for now
+    makePackage(srcFolder, dstFolder, srcFolderRoot, cb);
+}
+
+/**
+    Command line support.
+*/
+if (process.argv.length === 4) {
+    makeAll(process.argv[2], process.argv[3], function (err) {
+        if (err) {
+            console.log(err);
+        }
+    });
+} else if (process.argv.length === 5) {
+    if (process.argv[4].indexOf('/') === -1) {
+        makePackage(process.argv[2], process.argv[3], process.argv[4], function (err) {
+            if (err) {
+                console.log(err);
+            }
+        });
+    } else {
+        makeFile(process.argv[2], process.argv[3], process.argv[4], function (err) {
+            if (err) {
+                console.log(err);
+            }
+        });
+    }
+}
+
+
