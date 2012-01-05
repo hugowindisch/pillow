@@ -153,14 +153,17 @@ function publishHtml(
 ) {
     // we need to load all components
     var dependencies = [
-        '/' + path.join(details.name, details.name + '.js')
+        path.join(details.name, details.name + '.js')
     ];
     dust.render('componentTemplate', { 
         dependencies: dependencies,
         main: details.name
     }, function (err, data) {
+        if (err) {
+            return cb(err);
+        }
         fs.writeFile(
-            path.join(outputfolder, details.name, details.name + '.html'),
+            path.join(outputfolder, details.name + '.html'),
             data,
             cb
         );
@@ -573,7 +576,7 @@ function makePackage(srcFolder, dstFolder, packageName, cb) {
         if (err) {
             return cb(err);
         }
-        async.forEach(packages, function (e) {
+        async.forEach(packages, function (e, cb) {
             // before doing anything lenghty, make sure it has chances
             // of succeeding
             if (e.indexOf(packageName) !== -1) {
@@ -602,13 +605,28 @@ function makePackage(srcFolder, dstFolder, packageName, cb) {
 }
 
 /**
-    This function regenerates a single file.
+    This function regenerates a single file (or a full package if
+    a package name is specified).
 */
 function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
+    
     // the provided relative path should be relative to the dstFolder
     // and consequently the first subdir should be the package name
     srcFolder = path.normalize(dstFolderRelativeFilePath);
-    var srcFolderRoot = srcFolder.split('/')[0];
+    var srcFolderRoot 
+        splitFolder = srcFolder.split('/');
+    if (splitFolder.length > 1) {
+        srcFolderRoot = splitFolder[0];
+    } else if (/\.html$/.test(dstFolderRelativeFilePath)) {
+        srcFolderRoot = dstFolderRelativeFilePath.slice(0, -5);
+    } else if (dstFolderRelativeFilePath.indexOf('.') === -1) {
+        srcFolderRoot = dstFolderRelativeFilePath;
+    } else {
+        // FIXME
+        // nothing to regenerate (maybe in fact the meat.js thing)
+        return cb(null);
+    }
+    
     // non optimal but ok for now
     makePackage(srcFolder, dstFolder, srcFolderRoot, cb);
 }
@@ -616,26 +634,23 @@ function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
 /**
     Command line support.
 */
-if (process.argv.length === 4) {
+if (process.argv.length === 4 && process.argv[1] === __filename) {
     makeAll(process.argv[2], process.argv[3], function (err) {
         if (err) {
             console.log(err);
         }
     });
 } else if (process.argv.length === 5) {
-    if (process.argv[4].indexOf('/') === -1) {
-        makePackage(process.argv[2], process.argv[3], process.argv[4], function (err) {
-            if (err) {
-                console.log(err);
-            }
-        });
-    } else {
-        makeFile(process.argv[2], process.argv[3], process.argv[4], function (err) {
-            if (err) {
-                console.log(err);
-            }
-        });
-    }
+    makeFile(process.argv[2], process.argv[3], process.argv[4], function (err) {
+        if (err) {
+            console.log(err);
+        }
+    });
 }
 
-
+/**
+    Library support.
+*/
+exports.makeAll = makeAll;
+exports.makePackage = makePackage;
+exports.makeFile = makeFile;
