@@ -1,18 +1,32 @@
 /**
     grind.js
-    (c) Hugo Windisch 2012 All Rights Reserved
+    Copyright (c) Hugo Windisch 2012 All Rights Reserved
 */
 var fs = require('fs'),
     path = require('path'),
     async = require('async'),
     dust = require('dust'),
-    srcTemplate = "meatGrinder.addModuleFile('{modulename}', '{filepath}', function (require, exports, module) {{~n}\
-{code}{~n}\
-});{~n}",
-    compiled = dust.compile(srcTemplate, "srcTemplate"),
     assetExt = { 'jpg': 0, 'png': 0, 'gif': 0 };
   
-dust.loadSource(compiled);
+// synchronously load the templates that we need when this module is loaded
+console.log(__dirname);
+dust.loadSource(
+    dust.compile(
+        fs.readFileSync(
+            path.join(__dirname,'templates/src.js')
+        ).toString(), 
+        'srcTemplate'
+    )
+);
+dust.loadSource(
+    dust.compile(
+        fs.readFileSync(
+            path.join(__dirname,'templates/component.html')
+        ).toString(), 
+        'componentTemplate'
+    )
+);
+
 
 /*
     This will grind directories, find the package.json files and then
@@ -103,7 +117,7 @@ function publishJSFile(
 ) {    
     // we want to split the path
     //filename.split(
-    var relative = filename.slice(modulerootfolder.length);
+    var meatPath = filename.slice(modulerootfolder.length + 1, -3);
     
     async.waterfall([
         function (cb) {
@@ -116,18 +130,57 @@ function publishJSFile(
             
             dust.render('srcTemplate', { 
                 modulename: modulename,
-                filepath: relative,
+                filepath: meatPath,
                 code: indented
             }, cb);
             
         },
         function (out, cb) {
             console.log(out);
-// write to the stream            
-            jsstream.write(out, cb);
+            jsstream.write(out);
+            cb(null);
         }], cb);
 }
 
+/**
+    Publishes the html that allows to run the package in a browser
+    using a standalone statically loaded html.
+*/
+function publishHtml(
+    details,
+    outputfolder,
+    cb
+) {
+    // we need to load all components
+    var dependencies = [
+        '/' + path.join(details.name, details.name + '.js')
+    ];
+    dust.render('componentTemplate', { 
+        dependencies: dependencies,
+        main: details.name
+    }, function (err, data) {
+        fs.writeFile(
+            path.join(outputfolder, details.name, details.name + '.html'),
+            data,
+            cb
+        );
+    });
+}
+
+/**
+    Publishes the meat file itself. This is a simple file copy.
+*/
+function publishMeat(
+    outputfolder,
+    cb
+) {
+    fs.readFile(path.join(__dirname, 'meat.js'), function (err, data) {
+        if (err) {
+            return cb(err);
+        }
+        fs.writeFile(path.join(outputfolder, 'meat.js'), data, cb) ;
+    });
+}
 
 /**
     Packages the content of a module folder.
@@ -238,6 +291,12 @@ function makePublishedPackage(
                     cb
                 );
             }, cb);
+        },
+        function (cb) {
+            publishHtml(details, outputfolder, cb);
+        },
+        function (cb) {
+            publishMeat(outputfolder, cb);
         }
     ], cb);
     
@@ -401,6 +460,8 @@ function processPackageDetails(details, outputfolder,  cb) {
             return cb(err);
         }
         var stream = fs.createWriteStream(publishJsStream);
+        // make sure we know how to find the main file of the package
+        stream.write('meat.setPackageMainFile(\''+ details.name + '\', \'lib/' + details.name + '\');\n');
         makePublishedPackage(
             details,
             outputfolder, //publishdir, 
