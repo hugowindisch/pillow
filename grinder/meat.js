@@ -69,7 +69,11 @@ var meat = {
             // if it is NOT a path (i.e. 'potato'), we convert it
             // right now
             if (moduleName.indexOf('/') === -1) {
-                path = moduleName + '/' + that.packages[moduleName].mainFile;
+                p = that.packages[moduleName];
+                if (!p) {
+                    throw new Error('Unavailable package ' + moduleName);
+                }
+                path = moduleName + '/' + p.mainFile;
                 
             } else {
                 // we must make the path absolute

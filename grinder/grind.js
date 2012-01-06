@@ -155,7 +155,13 @@ function publishHtml(
     // we need to load all components
     var dependencies = [
         path.join(details.name, details.name + '.js')
-    ];
+    ],
+        deps = details.json.dependencies;
+    if (deps) {
+        Object.keys(deps).forEach(function (d) {
+            dependencies.push(path.join(d, d + '.js'));
+        });
+    }
     dust.render('componentTemplate', { 
         dependencies: dependencies,
         main: details.name
@@ -329,6 +335,7 @@ function loadPackageDetails(packageFile, cb) {
     });
 }
 
+
 /**
     Processes a package.json file that has been loaded with its "details".
 */
@@ -358,78 +365,116 @@ function processPackageDetails(details, outputfolder,  cb) {
 }
 
 /**
-    Processes a package.json file.
+    Processes multiple package details (the packages are given as a package map).
 */
-function processPackage(packageFile, outputfolder, cb) {
-    // load the json file
-    loadPackageDetails(packageFile, function (err, result) {
-        if (err) {
-            return cb(err);
+function processMultiplePackageDetails(packages, dstFolder, cb) {
+    async.forEach(
+        Object.keys(packages), 
+        function (pd, cb) {            
+            processPackageDetails(packages[pd], dstFolder, cb);
+        },
+        cb
+    );
+}
+
+/**
+    Returns a package map that contains a package an all its recursive dependencies.
+*/
+function getPackageDependencies(packageMap, packageName) {
+    function gd(res, name) {
+        var p = packageMap[name],
+            dep;
+        if (p) {
+            res[name] = p;
+            dep = p.json.dependencies;
+            if (dep) {
+                Object.keys(dep).forEach(function (k) {
+                    // FIXME we should validate versions
+                    gd(res, k);
+                });
+            }
+        } else {
+            throw new Error("Missing Package");
         }
-        processPackageDetails(result, outputfolder, cb);
-    });    
+    }
+    var res = {};
+    gd(res, packageName);
+    return res;
 }
 
 /**
     Finds packages from a given folder and calls cb(err, packages) where
-    packages is an array of directory names relative to rootfolder.
+    packages is an array of package details.
 */
 function findPackages(rootfolder, cb) {
-    // make sure we have results
-    var results = [];
-    // inner function that actually does the job
-    function fp(rootfolder, results, cb) {
-        // search folders for package.json
-        //as
-        async.waterfall(
-            [
-                // read the dir
-                function (cb) {
-                    fs.readdir(rootfolder, cb);
-                },
-                // stat all files
-                function (files, cb) {
-                    async.map(files, function (filename, cb) {
-                        fs.stat(path.join(rootfolder, filename), function (err, stats) {
-                            if (err) {
-                                return cb(err);
-                            }
-                            cb(err, {filename: filename, stats: stats});
-                        });
-                    }, cb);
-                },
-                // for files that are js
-                function (stats, cb) {
-                    // process all files
-                    async.forEach(stats, function (file, cb) {
-                        var isJs = /package\.json$/;
-                        if (file.stats.isFile()) {
-                            if (isJs.test(file.filename)) {
-                                results.push(path.join(rootfolder, file.filename));
-                                return cb(null);
-                            } else {
-                                cb(null);
-                            }
-                        } else if (file.stats.isDirectory()) {
-                            fp(
-                                path.join(rootfolder, file.filename),
-                                results,
-                                cb
-                            );
-                        }
-                    }, function (err) {
+    // search folders for package.json
+    async.waterfall(
+        [
+            // read the dir
+            function (cb) {
+                fs.readdir(rootfolder, cb);
+            },
+            // stat all files
+            function (files, cb) {
+                async.map(files, function (filename, cb) {
+                    fs.stat(path.join(rootfolder, filename), function (err, stats) {
                         if (err) {
                             return cb(err);
                         }
-                        return cb(null, results);
+                        cb(err, {filename: filename, stats: stats});
                     });
-                }
-            ],
-            cb
-        );
-    }
-    // do it!
-    fp(rootfolder, results, cb);
+                }, cb);
+            },
+            // for files that are js
+            function (stats, cb) {
+                var found = [], results = {};
+                // process all files
+                async.forEach(stats, function (file, cb) {
+                    var isJs = /package\.json$/;
+                    if (file.stats.isFile()) {
+                        if (isJs.test(file.filename)) {
+                            found.push(path.join(rootfolder, file.filename));
+                            return cb(null);
+                        } else {
+                            cb(null);
+                        }
+                    } else if (file.stats.isDirectory()) {
+                        findPackages(
+                            path.join(rootfolder, file.filename),
+                            function (err, res) {
+                                if (!err) {
+                                    Object.keys(res).forEach(function (k) {
+                                        results[k] = res[k];
+                                    });
+                                }
+                                cb(err);
+                            }
+                        );
+                    }
+                }, function (err) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    return cb(null, found, results);
+                });
+            },
+            // load the package details of the found files and add them to the results
+            function (found, results, cb) {
+                async.map(found, loadPackageDetails, function (err, detailArray) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    // map all the results
+                    detailArray.forEach(function (d) {
+                        results[d.name] = d;
+                    });
+                    // return the map
+                    cb(null, results);
+                });
+            }
+        ],
+        cb
+    );
 }
 
 /**
@@ -440,13 +485,7 @@ function makeAll(srcFolder, dstFolder, cb) {
         if (err) {
             return cb(err);
         }
-        async.forEach(
-            packages, 
-            function (p, cb) {            
-                processPackage(p, dstFolder, cb);
-            },
-            cb
-        );
+        processMultiplePackageDetails(packages, dstFolder, cb);
     });
 }
 
@@ -455,35 +494,16 @@ function makeAll(srcFolder, dstFolder, cb) {
 */
 function makePackage(srcFolder, dstFolder, packageName, cb) {
     findPackages(process.argv[2], function (err, packages) {
-        var found = false;
+        var deps;
         if (err) {
             return cb(err);
         }
-        async.forEach(packages, function (e, cb) {
-            // before doing anything lenghty, make sure it has chances
-            // of succeeding
-            if (e.indexOf(packageName) !== -1) {
-                // load the details
-                loadPackageDetails(e, function (err, result) {
-                    if (err) {
-                        return cb(err);
-                    }
-                    if (result.name === packageName) {
-                        processPackageDetails(result, dstFolder, cb);
-                        found = true;
-                    } else {
-                        return cb(null);
-                    }
-                });
-            } else {
-                return cb(null);
-            }
-        }, function (err) {
-            if (!found) {
-                err = new Error("Package Not Found");
-            }
-            cb(err);
-        });
+        try {
+            deps = getPackageDependencies(packages, packageName);
+        } catch (e) {
+            return cb(e);
+        }
+        processMultiplePackageDetails(deps, dstFolder, cb);
     });        
 }
 
