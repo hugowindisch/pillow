@@ -1,5 +1,9 @@
 /**
     grind.js
+        This will grind directories, find the package.json files and then
+        publish the package.json files in a statically servable directory
+        structure (that can be compressed to a web widget for example)
+        
     Copyright (c) Hugo Windisch 2012 All Rights Reserved
 */
 /*globals __dirname, __filename */
@@ -28,12 +32,19 @@ dust.loadSource(
     )
 );
 
-
-/*
-    This will grind directories, find the package.json files and then
-    publish the package.json files in a statically servable directory
-    structure (that can be compressed to a web widget for example)
+/**
+    Concatenates two objects.
 */
+function concatObject(dst, src) {
+    var k;
+    for (k in src) {
+        if (src.hasOwnProperty(k)) {
+            dst[k] = src[k];            
+        }
+    }
+    return dst;
+}
+
 
 /**
     Creates a folder if the folder does not already exist.
@@ -406,7 +417,7 @@ function getPackageDependencies(packageMap, packageName) {
     Finds packages from a given folder and calls cb(err, packages) where
     packages is an array of package details.
 */
-function findPackages(rootfolder, cb) {
+function findPackagesFromSingleFolder(rootfolder, cb) {
     // search folders for package.json
     async.waterfall(
         [
@@ -439,13 +450,11 @@ function findPackages(rootfolder, cb) {
                             cb(null);
                         }
                     } else if (file.stats.isDirectory()) {
-                        findPackages(
+                        findPackagesFromSingleFolder(
                             path.join(rootfolder, file.filename),
                             function (err, res) {
                                 if (!err) {
-                                    Object.keys(res).forEach(function (k) {
-                                        results[k] = res[k];
-                                    });
+                                    concatObject(results, res);
                                 }
                                 cb(err);
                             }
@@ -478,7 +487,29 @@ function findPackages(rootfolder, cb) {
 }
 
 /**
+    Finds packages from multiple folders.
+    note: folderArray can be a string or an array of strings
+*/
+function findPackages(folderArray, cb) {
+    if (!(folderArray instanceof Array)) {
+        findPackagesFromSingleFolder(folderArray, cb);
+    } else {
+        var packages = {};
+        async.map(folderArray, findPackagesFromSingleFolder, function (err, res) {
+            if (err) {
+                return cb(err);
+            }
+            res.forEach(function (r) {
+                concatObject(packages, r);
+            });
+            cb(null, packages);
+        });
+    }
+}
+
+/**
     This function regenerates all packages.
+    note: srcFolder can be a string or an array of strings
 */
 function makeAll(srcFolder, dstFolder, cb) {
     findPackages(srcFolder, function (err, packages) {
@@ -491,6 +522,7 @@ function makeAll(srcFolder, dstFolder, cb) {
 
 /**
     This function regenerates a single package.
+    note: srcFolder can be a string or an array of strings
 */
 function makePackage(srcFolder, dstFolder, packageName, cb) {
     findPackages(srcFolder, function (err, packages) {
@@ -510,6 +542,7 @@ function makePackage(srcFolder, dstFolder, packageName, cb) {
 /**
     This function regenerates a single file (or a full package if
     a package name is specified).
+    note: srcFolder can be a string or an array of strings
 */
 function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
     // the provided relative path should be relative to the dstFolder

@@ -88,9 +88,6 @@ todo
 : generate compilation report on any request that failed
 : streaming for serving files and for copying files
 : real 'make' capability (minimal regeneration)
-: multiple directories for grinding (allowing common modules... do we need this?)
-    -> think about this one... this notion is probably useless (I mean the 
-    common modules)
 
 done
 ----
@@ -99,4 +96,7 @@ done
 : server that auto publishes (autogrind)
 : better support for the require thing (like ... the module thing & other more quirky behaviors)
 : package dependencies support
+: multiple directories for grinding (allowing common modules... do we need this?)
+    -> think about this one... this notion is probably useless (I mean the 
+    common modules)
 
