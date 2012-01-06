@@ -481,7 +481,7 @@ function findPackages(rootfolder, cb) {
     This function regenerates all packages.
 */
 function makeAll(srcFolder, dstFolder, cb) {
-    findPackages(process.argv[2], function (err, packages) {
+    findPackages(srcFolder, function (err, packages) {
         if (err) {
             return cb(err);
         }
@@ -493,7 +493,7 @@ function makeAll(srcFolder, dstFolder, cb) {
     This function regenerates a single package.
 */
 function makePackage(srcFolder, dstFolder, packageName, cb) {
-    findPackages(process.argv[2], function (err, packages) {
+    findPackages(srcFolder, function (err, packages) {
         var deps;
         if (err) {
             return cb(err);
@@ -512,18 +512,17 @@ function makePackage(srcFolder, dstFolder, packageName, cb) {
     a package name is specified).
 */
 function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
-    
     // the provided relative path should be relative to the dstFolder
     // and consequently the first subdir should be the package name
-    srcFolder = path.normalize(dstFolderRelativeFilePath);
-    var srcFolderRoot, 
-        splitFolder = srcFolder.split('/');
+    var assetFolder = path.normalize(dstFolderRelativeFilePath),
+        assetFolderRoot, 
+        splitFolder = assetFolder.split('/');
     if (splitFolder.length > 1) {
-        srcFolderRoot = splitFolder[0];
+        assetFolderRoot = splitFolder[0];
     } else if (/\.html$/.test(dstFolderRelativeFilePath)) {
-        srcFolderRoot = dstFolderRelativeFilePath.slice(0, -5);
+        assetFolderRoot = dstFolderRelativeFilePath.slice(0, -5);
     } else if (dstFolderRelativeFilePath.indexOf('.') === -1) {
-        srcFolderRoot = dstFolderRelativeFilePath;
+        assetFolderRoot = dstFolderRelativeFilePath;
     } else {
         // FIXME
         // nothing to regenerate (maybe in fact the meat.js thing)
@@ -532,10 +531,9 @@ function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
             cb
         );
         return;
-    }
-    
+    }    
     // non optimal but ok for now
-    makePackage(srcFolder, dstFolder, srcFolderRoot, cb);
+    makePackage(srcFolder, dstFolder, assetFolderRoot, cb);
 }
 
 /**
