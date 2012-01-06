@@ -21,34 +21,33 @@ exports.staticServe = function (req, res, match, cxt) {
     console.log(match[1]);
     async.waterfall([
         function (cb) {
-console.log('grind ' + cxt.srcFolder + ' ' + cxt.dstFolder + ' ' + match[1]);
             grind.makeFile(cxt.srcFolder, cxt.dstFolder, match[1], cb);
         },
-        function (cb) {
-console.log('readFile ' + path.join(cxt.dstFolder,match[1]));
-            fs.readFile(path.join(cxt.dstFolder,match[1]), cb);
-        },
         function (data, cb) {
-console.log('send');
             var ext = /\.([^.]*)$/,
                 m = ext.exec(match[1]),
-                mime = 'text/plain';
+                mime = 'text/plain',
+                rs = fs.createReadStream(path.join(cxt.dstFolder, match[1]));
 
-console.log(m);
-console.log(data);
             if (m) {
-console.log('---');            
                 mime = mimetypes[m[1]] || mime;
             }
-console.log(mime);            
-            res.writeHead(200, {'Content-Type': mime});
-            res.end(data);
+
+            rs.on('error', function () {
+                res.writeHead(404);
+                res.end();
+            });
+            rs.once('fd', function () {
+                res.writeHead(200, {'Content-Type': mime});
+            });
+
+            rs.pipe(res);
         }
-    ], function (err) {
-console.log('kaboum');    
+    ], function (err) {   
         if (err) {
             res.writeHead(404);
             res.end();
         }
     });
-}
+};
+
