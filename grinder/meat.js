@@ -33,13 +33,21 @@ var meat = {
             l = spl.length,
             i,
             c;
-           
-        for (i = 0; i < l; i += 1) {
-            c = spl[i];
-            if (c === '..') {
-                cps.pop();
-            } else if (c !== '.') {
-                cps.push(c);
+        if (l > 0) {
+            c = spl[0];
+            // is it a relative path?
+            if (c !== '.' && c !== '..') {
+                // no:
+                cps = [];
+            }
+            // process the path
+            for (i = 0; i < l; i += 1) {
+                c = spl[i];
+                if (c === '..') {
+                    cps.pop();
+                } else if (c !== '.' && c !== '') {
+                    cps.push(c);
+                }
             }
         }
         return cps;
@@ -53,7 +61,9 @@ var meat = {
                 fullPathDirectory,
                 fullPath,
                 packageName,
-                exports;
+                exports,
+                p,
+                m;
                 
             // the path can be either a module name OR a file
             // if it is NOT a path (i.e. 'potato'), we convert it
@@ -74,19 +84,23 @@ var meat = {
             
             console.log(fullPath + ' ' + packageName + ' ' + path + ' ' + fullPathDirectory);
             
-            // if we could resolve the path being loaded
-            if (path) {
-                // if the module can't be found
-                exports = applicationDomain[fullPath];
-                if (!exports) {
-                    exports = applicationDomain[fullPath] = {};
-                    that.packages[packageName].files[path](
-                        that.makeRequire(applicationDomain, fullPathDirectory),
-                        applicationDomain[path],
-                        // FIXME
-                        path
-                    );
+            // if the module can't be found
+            exports = applicationDomain[fullPath];
+            if (!exports) {
+                p = that.packages[packageName];
+                if (!p) {
+                    throw new Error('Unavailable package ' + packageName);
                 }
+                m = p.files[path];
+                if (!m) {
+                    throw new Error('Unavailable module ' + path);
+                }
+                exports = applicationDomain[fullPath] = {};
+                m(
+                    that.makeRequire(applicationDomain, fullPathDirectory),
+                    exports,
+                    {id: '/' + fullPath}
+                );
             }
             return exports;
         }

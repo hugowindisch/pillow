@@ -84,7 +84,7 @@ todo
 ----
 : streaming for serving files and for copying files
 : real 'make' capability (minimal regeneration)
-: package dependencies in the html file (make sure all is there)
+: package dependencies in the html file (make sure all is there) and better package support
 : multiple directories for grinding (allowing common modules... do we need this?)
     -> think about this one... this notion is probably useless (I mean the 
     common modules)
@@ -94,5 +94,6 @@ done
 : the javascript require thing
 : generating an html that requires the module that is the main
 : server that auto publishes (autogrind)
+: better support for the require thing (like ... the module thing & other more quirky behaviors)
 
 

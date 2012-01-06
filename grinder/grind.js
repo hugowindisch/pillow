@@ -2,6 +2,7 @@
     grind.js
     Copyright (c) Hugo Windisch 2012 All Rights Reserved
 */
+/*globals __dirname, __filename */
 var fs = require('fs'),
     path = require('path'),
     async = require('async'),
@@ -13,7 +14,7 @@ console.log(__dirname);
 dust.loadSource(
     dust.compile(
         fs.readFileSync(
-            path.join(__dirname,'templates/src.js')
+            path.join(__dirname, 'templates/src.js')
         ).toString(), 
         'srcTemplate'
     )
@@ -21,7 +22,7 @@ dust.loadSource(
 dust.loadSource(
     dust.compile(
         fs.readFileSync(
-            path.join(__dirname,'templates/component.html')
+            path.join(__dirname, 'templates/component.html')
         ).toString(), 
         'componentTemplate'
     )
@@ -181,89 +182,12 @@ function publishMeat(
         if (err) {
             return cb(err);
         }
-        fs.writeFile(path.join(outputfolder, 'meat.js'), data, cb) ;
+        fs.writeFile(path.join(outputfolder, 'meat.js'), data, cb);
     });
 }
 
 /**
-    Packages the content of a module folder.
-*/
-/*
-function publishModuleFolder(
-    modulename, 
-    modulerootfolder, 
-    folder, 
-    outputfolder, 
-    jsstream, 
-    cb
-) {
-    console.log('publishModuleFolder ' + folder);
-    async.waterfall(
-        [
-            // read the dir
-            function (cb) {
-                fs.readdir(folder, cb);
-            },
-            // stat all files
-            function (files, cb) {
-                async.map(files, function (filename, cb) {
-                    fs.stat(path.join(folder, filename), function (err, stats) {
-console.log(stats);                    
-                        if (err) {
-                            return cb(err);
-                        }
-                        cb(err, {filename: filename, stats: stats});
-                    });
-                }, cb);
-            },
-            // for files that are js
-            function (stats, cb) {
-                // process all files
-                async.forEach(stats, function (file, cb) {                
-                    var isJs = /\.js$/,
-                        getExt = /\.(\w+)$/,
-                        matches;
-                    if (file.stats.isFile()) {
-                        // js file
-                        if (isJs.test(file.filename)) {                                                
-                            publishJSFile(
-                                modulename,
-                                modulerootfolder,
-                                path.join(folder, file.filename),
-                                jsstream,
-                                cb
-                            );
-                        } else {
-                            matches = getExt.exec(file.filename);
-                            if (matches && assetExt[matches[1]] !== undefined) {
-                                publishAsset(
-                                    modulename,
-                                    modulerootfolder,
-                                    path.join(folder, file.filename),
-                                    outputfolder,
-                                    cb
-                                );
-                            } else {
-                                // nothing to do with this file
-                                cb(null);
-                            }
-                        }
-                    } else if (file.stats.isDirectory()) {
-                        publishModuleFolder(
-                            modulename, 
-                            modulerootfolder, 
-                            path.join(folder, file.filename), 
-                            outputfolder,
-                            jsstream,
-                            cb
-                        );
-                    }
-                }, cb);
-            }
-        ],
-        cb
-    );
-}
+    Generates the published form of a given package.
 */
 function makePublishedPackage(
     details,
@@ -406,47 +330,6 @@ function loadPackageDetails(packageFile, cb) {
 }
 
 /**
-    Processes a package.json file.
-*/
-/*
-function processPackage(packageFile, outputfolder, cb) {
-    // load the json file
-    fs.readFile(packageFile, function (err, data) {
-        var p = JSON.parse(data.toString()),            
-            dirname = path.dirname(packageFile),
-            // we should use the package.name for the packagename
-            packagename = p.name || path.basename(dirname),
-            publishdir = path.join(outputfolder, packagename),
-            publishJsStream = path.join(publishdir, packagename + '.js');
-       
-        console.log('publish ' + dirname + '  ' + packagename + ' ' + publishdir + ' ' + publishJsStream);
-        // create an output dir for this package
-        createFolder(publishdir, function (err) {
-            if (err) {
-                return cb(err);
-            }
-            var stream = fs.createWriteStream(publishJsStream);
-            // we should support the dependencies and other stuff 
-            // and use the src lib etc.. right now I will simply
-            // use the package name and grind the whole directory where
-            // the package.json was found
-            publishModuleFolder(
-                packagename, // modulename
-                dirname, 
-                dirname, 
-                outputfolder, 
-                stream, 
-                function (err) {
-                    // close the output stream
-                    stream.destroySoon();
-                    // propagate the result
-                    cb(err);
-                }
-            );
-        });
-    });    
-}*/
-/**
     Processes a package.json file that has been loaded with its "details".
 */
 function processPackageDetails(details, outputfolder,  cb) {
@@ -464,7 +347,7 @@ function processPackageDetails(details, outputfolder,  cb) {
         }
         var stream = fs.createWriteStream(publishJsStream);
         // make sure we know how to find the main file of the package
-        stream.write('meat.setPackageMainFile(\''+ details.name + '\', \'lib/' + details.name + '\');\n');
+        stream.write('meat.setPackageMainFile(\'' + details.name + '\', \'lib/' + details.name + '\');\n');
         makePublishedPackage(
             details,
             outputfolder, //publishdir, 
@@ -613,7 +496,7 @@ function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
     // the provided relative path should be relative to the dstFolder
     // and consequently the first subdir should be the package name
     srcFolder = path.normalize(dstFolderRelativeFilePath);
-    var srcFolderRoot 
+    var srcFolderRoot, 
         splitFolder = srcFolder.split('/');
     if (splitFolder.length > 1) {
         srcFolderRoot = splitFolder[0];
@@ -624,7 +507,11 @@ function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
     } else {
         // FIXME
         // nothing to regenerate (maybe in fact the meat.js thing)
-        return cb(null);
+        publishMeat(
+            dstFolder,
+            cb
+        );
+        return;
     }
     
     // non optimal but ok for now
