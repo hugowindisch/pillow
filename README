@@ -1,102 +1,29 @@
-the goal of this thing is to package a bunch of directories
-as modules that will be loaded on the client side.
+MeatGrinder: The package grinder
+================================
+Takes a bunch of packages (package.json) and produces a folder that
+can be statically served allowing to run these packages.
+
+meat.js is the small js library that allows to require modules on the client.
 
 
-[bunch of folders] => [directory for static serving]
-Mini server that serves [directory for static serving] and that dynamically regenerates it
+    todo
+    ----
+    : check the versionning when dealing with dependencies
+    : lint
+    : minimize
+    : generate compilation report on any request that failed
 
+    done
+    ----
+    : the javascript require thing
+    : generating an html that requires the module that is the main
+    : server that auto publishes (autogrind)
+    : better support for the require thing (like ... the module thing & other more quirky behaviors)
+    : package dependencies support
+    : multiple directories for grinding (allowing common modules... do we need this?)
+        -> think about this one... this notion is probably useless (I mean the 
+        common modules)
+    : streaming for serving files
+    : real 'make' capability (minimal regeneration)
 
-------------
-
-* we will have a bunch of client side applications that will be packaged
-as modules
-
-* we want the distinction of application and module + an application may have
-external modules (so... an application can load in its own context OR globally)
-
-* we want the notion of shared modules between all applications
-
-* we want to be able to deal with images and other client side resources (the notion
-that a module may have resources that it can load locally)
-
-<a component is just a special standard format of a module (like exporting a create or something)>
-<requiring will look locally and then globally>
-<runtime-loading can be done in a local context or in the global context and is independent of the notion
-of requiring... I mean requiring will go local first and then global but>
-<one package creates ONE js file optionally linted and minimized>
-<the output folder has the following structure
-
-package1/
-    package1.js
-    assets/
-        ... all static assets here
-package2/
-    package2.js
-    assets/
-        ... all static assets here
->
-<the internal structure of a module contains all the individual files
-function () {
-    var mod =  {
-        files: {
-            file1: function () {
-            },
-            file2: function() {
-            }
-            folder1: function() {
-            }
-        }
-        main: {
-        }
-    };
-}
->
-
-<
-    Algo: Find modules
-        - walk subdirs looking for a package info
-            - publish dir
-            
-    Algo: publish dir(dir)
-        - walk dir looking for js files
-        - lint file
-        - generate module file (dir.js)
-        
-        - walk dir looking for graphic (static) assets and copy them
-        to the assets folder
-        
-    Static serving: only when something is LOADED it should be regenerated
-        (like: when something is loaded in a given package
->
-
-----------------
-there is the notion of the 'packager' (the thing that creates the statically
-served folder) and the notion of the loader itself.
-
-at the packager level, maybe the the notion of app vs module is not required. This is a detail
-of the loader itself (???) --> Not SURE this is possible...
-
-
-
-/////////////////
-/////////////////
-todo
-----
-: check the versionning when dealing with dependencies
-: lint
-: minimize
-: generate compilation report on any request that failed
-: streaming for serving files and for copying files
-: real 'make' capability (minimal regeneration)
-
-done
-----
-: the javascript require thing
-: generating an html that requires the module that is the main
-: server that auto publishes (autogrind)
-: better support for the require thing (like ... the module thing & other more quirky behaviors)
-: package dependencies support
-: multiple directories for grinding (allowing common modules... do we need this?)
-    -> think about this one... this notion is probably useless (I mean the 
-    common modules)
 

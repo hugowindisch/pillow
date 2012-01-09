@@ -14,7 +14,6 @@ var fs = require('fs'),
     assetExt = { 'jpg': 0, 'png': 0, 'gif': 0 };
   
 // synchronously load the templates that we need when this module is loaded
-console.log(__dirname);
 dust.loadSource(
     dust.compile(
         fs.readFileSync(
@@ -99,6 +98,32 @@ function copyFile(from, to, cb) {
 }
 
 /**
+    Updates a file (copies it if it does not exist or if it is 
+    out dated).
+*/
+function copyFileIfOutdated(from, to, cb) {
+    async.map([from, path.join(to, path.basename(from))], fs.stat, function (err, stats) {
+        if (err || stats[1].mtime.getTime() < stats[0].mtime.getTime()) {
+            copyFile(from, to, cb);
+        } else {
+            // nothing to do
+            cb(null);
+        }
+        
+    });
+}
+
+/**
+    Checks if a file is older than a given date
+*/
+function checkOlderOrInvalid(fn, date, cb) {
+    fs.stat(fn, function (err, stats) {
+        cb(null, err || (stats.mtime.getTime() < date.getTime()));
+    });    
+}
+
+
+/**
     Publishes an asset such as a jpg or png by copying it in the
     deployment directory.
 */
@@ -113,7 +138,7 @@ function publishAsset(
         dstfolder = path.dirname(dstfile);
         
     console.log('publishAsset ' + filename + ' to ' + dstfolder);
-    copyFile(filename, dstfolder, cb);
+    copyFileIfOutdated(filename, dstfolder, cb);
 }
 
 /**
@@ -148,10 +173,35 @@ function publishJSFile(
             
         },
         function (out, cb) {
-            console.log(out);
             jsstream.write(out);
             cb(null);
-        }], cb);
+        }
+    ], cb);
+}
+
+/**
+    Publishes all the js files in the package (the files are combined into
+    one single js file).
+*/
+function publishJSFiles(
+    details,
+    outputfolder,
+    cb
+) {
+    var publishdir = path.join(outputfolder, details.name),
+        publishJsStream = path.join(publishdir, details.name + '.js'),
+        stream = fs.createWriteStream(publishJsStream);        
+    // make sure we know how to find the main file of the package
+    stream.write('meat.setPackageMainFile(\'' + details.name + '\', \'lib/' + details.name + '\');\n');
+    async.forEach(details.js, function (f, cb) {
+        publishJSFile(
+            details.name, 
+            details.dirname, 
+            f, 
+            stream,
+            cb
+        );
+    }, cb);
 }
 
 /**
@@ -195,12 +245,7 @@ function publishMeat(
     outputfolder,
     cb
 ) {
-    fs.readFile(path.join(__dirname, 'meat.js'), function (err, data) {
-        if (err) {
-            return cb(err);
-        }
-        fs.writeFile(path.join(outputfolder, 'meat.js'), data, cb);
-    });
+    copyFileIfOutdated(path.join(__dirname, 'meat.js'), outputfolder, cb);
 }
 
 /**
@@ -209,20 +254,21 @@ function publishMeat(
 function makePublishedPackage(
     details,
     outputfolder, 
-    jsstream, 
     cb
 ) {
     async.parallel([
         function (cb) {
-            async.forEach(details.js, function (f, cb) {
-                publishJSFile(
-                    details.name, 
-                    details.dirname, 
-                    f, 
-                    jsstream,
-                    cb
-                );
-            }, cb);
+            checkOlderOrInvalid(
+                path.join(outputfolder, details.name, details.name + '.js'),
+                details.mostRecentJSDate,
+                function (err, older) {
+                    if (older) {
+                        publishJSFiles(details, outputfolder, cb);
+                    } else {
+                        cb(err);
+                    }
+                }
+            );
         },
         function (cb) {
             async.forEach(details.other, function (f, cb) {
@@ -237,7 +283,17 @@ function makePublishedPackage(
             }, cb);
         },
         function (cb) {
-            publishHtml(details, outputfolder, cb);
+            checkOlderOrInvalid(
+                path.join(outputfolder, details.name + '.html'),
+                details.mostRecentJSDate,
+                function (err, older) {
+                    if (older) {
+                        publishHtml(details, outputfolder, cb);
+                    } else {
+                        cb(err);
+                    }
+                }
+            );
         },
         function (cb) {
             publishMeat(outputfolder, cb);
@@ -262,6 +318,9 @@ function findPackageFiles(folder, result, cb) {
     }
     if (!result.other) {
         result.other = [];
+    }
+    if (!result.stats) {
+        result.stats = {};
     }
     // do the async processing
     async.waterfall(
@@ -298,10 +357,16 @@ function findPackageFiles(folder, result, cb) {
                         if (file.stats.isFile()) {
                             // js file                            
                             if (isJs.test(file.filename)) {
+                                result.stats[ffn] = file.stats;
+                                // also keep the date of the most recent js file
+                                if (!result.mostRecentJSDate || result.mostRecentJSDate.getTime() < file.stats.mtime.getTime()) {
+                                    result.mostRecentJSDate = file.stats.mtime;
+                                }
                                 result.js.push(ffn);
                             } else {
                                 matches = getExt.exec(file.filename);
                                 if (matches && assetExt[matches[1]] !== undefined) {
+                                    result.stats[ffn] = file.stats;
                                     result.other.push(ffn);
                                 }
                             }
@@ -354,22 +419,16 @@ function processPackageDetails(details, outputfolder,  cb) {
     var dirname = details.dirname,
         // we should use the package.name for the packagename
         packagename = details.name,
-        publishdir = path.join(outputfolder, packagename),
-        publishJsStream = path.join(publishdir, packagename + '.js');
-   
-    console.log('publish ' + dirname + '  ' + packagename + ' ' + publishdir + ' ' + publishJsStream);
+        publishdir = path.join(outputfolder, packagename);
+
     // create an output dir for this package
     createFolder(publishdir, function (err) {
         if (err) {
             return cb(err);
         }
-        var stream = fs.createWriteStream(publishJsStream);
-        // make sure we know how to find the main file of the package
-        stream.write('meat.setPackageMainFile(\'' + details.name + '\', \'lib/' + details.name + '\');\n');
         makePublishedPackage(
             details,
             outputfolder, //publishdir, 
-            stream, 
             cb
         );
     });
