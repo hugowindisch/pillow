@@ -103,7 +103,7 @@ var meat = {
                 m(
                     that.makeRequire(applicationDomain, fullPathDirectory),
                     exports,
-                    {id: '/' + fullPath}
+                    { id: '/' + fullPath, exports: exports }
                 );
             }
             return exports;

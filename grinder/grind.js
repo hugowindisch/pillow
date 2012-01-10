@@ -393,13 +393,14 @@ function findPackageFiles(folder, result, cb) {
 */
 function loadPackageDetails(packageFile, cb) {
     var result = {
-        filename: packageFile,
+        filename: packageFile.filename,
+        mostRecentJSDate: packageFile.stats.mtime,
         // FIXME: this does not use the package info
-        dirname: path.dirname(packageFile),
+        dirname: path.dirname(packageFile.filename),
         js: [],
         other: []
     };
-    fs.readFile(packageFile, function (err, data) {
+    fs.readFile(packageFile.filename, function (err, data) {
         if (err) {
             return cb(err);
         }
@@ -503,7 +504,7 @@ function findPackagesFromSingleFolder(rootfolder, cb) {
                     var isJs = /package\.json$/;
                     if (file.stats.isFile()) {
                         if (isJs.test(file.filename)) {
-                            found.push(path.join(rootfolder, file.filename));
+                            found.push({filename: path.join(rootfolder, file.filename), stats: file.stats});
                             return cb(null);
                         } else {
                             cb(null);
