@@ -13,6 +13,10 @@ meat.js is the small js library that allows to require modules on the client.
     : minimize
     : generate compilation report on any request that failed
 
+    : add a way to know that you are the topmost component (in the meat thing...) so
+        you can startup differently when you are first required if you are the topmost thing.
+		(-- I'M NOT SURE ABOUT THIS ONE--)
+    
     done
     ----
     : the javascript require thing
@@ -25,5 +29,6 @@ meat.js is the small js library that allows to require modules on the client.
         common modules)
     : streaming for serving files
     : real 'make' capability (minimal regeneration)
+	: in the html we need DEEP dependencies not only shallow ones
 
 

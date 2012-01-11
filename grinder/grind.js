@@ -122,6 +122,30 @@ function checkOlderOrInvalid(fn, date, cb) {
     });    
 }
 
+/**
+    Returns a package map that contains a package an all its recursive dependencies.
+*/
+function getPackageDependencies(packageMap, packageName) {
+    function gd(res, name) {
+        var p = packageMap[name],
+            dep;
+        if (p) {
+            res[name] = p;
+            dep = p.json.dependencies;
+            if (dep) {
+                Object.keys(dep).forEach(function (k) {
+                    // FIXME we should validate versions
+                    gd(res, k);
+                });
+            }
+        } else {
+            throw new Error("Missing Package");
+        }
+    }
+    var res = {};
+    gd(res, packageName);
+    return res;
+}
 
 /**
     Publishes an asset such as a jpg or png by copying it in the
@@ -210,14 +234,13 @@ function publishJSFiles(
 */
 function publishHtml(
     details,
+    packageMap,
     outputfolder,
     cb
 ) {
     // we need to load all components
-    var dependencies = [
-        path.join(details.name, details.name + '.js')
-    ],
-        deps = details.json.dependencies;
+    var dependencies = [ ],
+        deps = getPackageDependencies(packageMap, details.name);
     if (deps) {
         Object.keys(deps).forEach(function (d) {
             dependencies.push(path.join(d, d + '.js'));
@@ -253,6 +276,7 @@ function publishMeat(
 */
 function makePublishedPackage(
     details,
+    packageMap,
     outputfolder, 
     cb
 ) {
@@ -288,7 +312,7 @@ function makePublishedPackage(
                 details.mostRecentJSDate,
                 function (err, older) {
                     if (older) {
-                        publishHtml(details, outputfolder, cb);
+                        publishHtml(details, packageMap, outputfolder, cb);
                     } else {
                         cb(err);
                     }
@@ -416,7 +440,7 @@ function loadPackageDetails(packageFile, cb) {
 /**
     Processes a package.json file that has been loaded with its "details".
 */
-function processPackageDetails(details, outputfolder,  cb) {
+function processPackageDetails(details, packageMap, outputfolder,  cb) {
     var dirname = details.dirname,
         // we should use the package.name for the packagename
         packagename = details.name,
@@ -429,7 +453,8 @@ function processPackageDetails(details, outputfolder,  cb) {
         }
         makePublishedPackage(
             details,
-            outputfolder, //publishdir, 
+            packageMap,
+            outputfolder,            
             cb
         );
     });
@@ -442,35 +467,10 @@ function processMultiplePackageDetails(packages, dstFolder, cb) {
     async.forEach(
         Object.keys(packages), 
         function (pd, cb) {            
-            processPackageDetails(packages[pd], dstFolder, cb);
+            processPackageDetails(packages[pd], packages, dstFolder, cb);
         },
         cb
     );
-}
-
-/**
-    Returns a package map that contains a package an all its recursive dependencies.
-*/
-function getPackageDependencies(packageMap, packageName) {
-    function gd(res, name) {
-        var p = packageMap[name],
-            dep;
-        if (p) {
-            res[name] = p;
-            dep = p.json.dependencies;
-            if (dep) {
-                Object.keys(dep).forEach(function (k) {
-                    // FIXME we should validate versions
-                    gd(res, k);
-                });
-            }
-        } else {
-            throw new Error("Missing Package");
-        }
-    }
-    var res = {};
-    gd(res, packageName);
-    return res;
 }
 
 /**
