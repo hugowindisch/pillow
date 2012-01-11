@@ -2,25 +2,27 @@
     autogrind.js
     Copyright (c) Hugo Windisch 2012 All Rights Reserved
 */
+/*globals __filename */
 var http = require('http'),
     srcFolder,
-    dstFolder,
-    urls = require('./urls').urls;
+    dstFolder;
     
-// this file implements a server that regenerates needed files
-// on each request (i.e. a development server)
-function serve(srcFolder, dstFolder) {
+/**
+    This function will serve the 'urls' mappings ({regexp: function})
+    passing req, res and the match from the regexp to function.
+*/
+function serve(urls, readOnlyContext) {
     var http = require('http');
     http.createServer(function (req, res) {
         var i, 
             l = urls.length,
             m,
             h;
-        for(i = 0; i < l; i += 1) {
+        for (i = 0; i < l; i += 1) {
             h = urls[i];
             m = h.filter.exec(req.url);
             if (m) {
-                h.handler(req, res, m, { srcFolder: srcFolder, dstFolder: dstFolder });
+                h.handler(req, res, m, readOnlyContext);
                 return;
             }
         }
@@ -30,7 +32,10 @@ function serve(srcFolder, dstFolder) {
     console.log('Server running at http://127.0.0.1:1337/');
 
 }
+// command line support
 if (process.argv.length === 4 && process.argv[1] === __filename) {
-    serve(process.argv[2], process.argv[3]);
+    serve(require('./urls').urls, {srcFolder: process.argv[2], dstFolder: process.argv[3]});
 }
+// library support
+exports.serve = serve;
 
