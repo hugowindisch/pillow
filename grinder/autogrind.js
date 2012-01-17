@@ -30,11 +30,10 @@ function serve(urls, readOnlyContext) {
         res.end();
     }).listen(1337, "127.0.0.1");
     console.log('Server running at http://127.0.0.1:1337/');
-
 }
 // command line support
-if (process.argv.length === 4 && process.argv[1] === __filename) {
-    serve(require('./urls').urls, {srcFolder: process.argv[2], dstFolder: process.argv[3]});
+if (process.argv[1] === __filename) {
+    serve(require('./urls').urls, require('./grind.js').processArgs(process.argv.slice(2)));
 }
 // library support
 exports.serve = serve;

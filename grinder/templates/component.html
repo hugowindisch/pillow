@@ -1,18 +1,22 @@
-<html>{~n}
-<head>{~n}
-    <script src = "meat.js" ></script>{~n}
-{#dependencies}
-    <script src = "{.}"></script>{~n}
-{/dependencies}
-    <script>{~n}
-        window.onload = function () {{~n}
-            var domain = {},{~n}
-                require = define.meat.makeRequire(domain, '');{~n}
-            require('{main}');{~n}
-        }{~n}
-    </script>{~n}
-</head>{~n}
-<body>{~n}
-</body>{~n}
-</html>{~n}
+<html>
+<head>
+{#jquery}    <script src = "{.}"></script>{/jquery}
+    <script src = "meat.js"></script>
+{#dependencies}    <script src = "{.}"></script>{~n}{/dependencies}
+    <script>
+        window.onload = function () {
+            var domain = {},
+                require = define.meat.makeRequire(domain, '');
+{#jquery}
+            // add support for jQuery, and allow jQuery code
+            // to use our modules
+            define.meat.supportJQuery(require);
+{/jquery}                
+            require('{main}');
+        }
+    </script>
+</head>
+<body>
+</body>
+</html>
 

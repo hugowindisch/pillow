@@ -25,6 +25,10 @@ meat.js is the small js library that allows to require modules on the client.
     : support the asynchronous (and the syncrhonous) versions of require but make the synchronous one
         FAIL if the thing is not loaded.
         
+    : verbosity options
+    : options for hiding globals like document and window
+    : support for more node globals (i.e. window.console -> console) __filename & stuff
+        
     
     done
     ----
@@ -48,4 +52,6 @@ meat.js is the small js library that allows to require modules on the client.
 		
 		THIS EXISTS IN THE SPEC: require.main
     : use "main" in the package definition 
+    : support command line options
+    : support jQuery as a command line option
 

@@ -7,11 +7,17 @@
     Copyright (c) Hugo Windisch 2012 All Rights Reserved
 */
 /*globals __dirname, __filename */
+/*jslint regexp: false */
 var fs = require('fs'),
     path = require('path'),
     async = require('async'),
     dust = require('dust'),
     assetExt = { 'jpg': 0, 'png': 0, 'gif': 0 };
+
+// disable newline and whitespace removal
+dust.optimizers.format = function (ctx, node) { 
+    return node;
+};
   
 // synchronously load the templates that we need when this module is loaded
 dust.loadSource(
@@ -160,16 +166,16 @@ function getPackageDependencies(packageMap, packageName) {
     deployment directory.
 */
 function publishAsset(
+    options,
     modulename, 
     modulerootfolder, 
     filename,  
-    outputfolder, 
     cb
 ) {    
-    var dstfile = path.join(outputfolder, modulename, filename.slice(modulerootfolder.length)),
+    var dstfile = path.join(options.dstFolder, modulename, filename.slice(modulerootfolder.length)),
         dstfolder = path.dirname(dstfile);
         
-    console.log('publishAsset ' + filename + ' to ' + dstfolder);
+    //console.log('publishAsset ' + filename + ' to ' + dstfolder);
     copyFileIfOutdated(filename, dstfolder, cb);
 }
 
@@ -244,12 +250,12 @@ function getMainModulePath(details) {
     one single js file).
 */
 function publishJSFiles(
+    options,
     details,
     packageMap,
-    outputfolder,
     cb
 ) {
-    var publishdir = path.join(outputfolder, details.name),
+    var publishdir = path.join(options.dstFolder, details.name),
         publishJsStream = path.join(publishdir, details.name + '.js'),
         stream = fs.createWriteStream(publishJsStream),
         dependencies = [ ],
@@ -294,9 +300,9 @@ function publishJSFiles(
     using a standalone statically loaded html.
 */
 function publishHtml(
+    options,
     details,
     packageMap,
-    outputfolder,
     cb
 ) {
     // we need to load all components
@@ -309,13 +315,14 @@ function publishHtml(
     }
     dust.render('componentTemplate', { 
         dependencies: dependencies,
-        main: details.name
+        main: details.name,
+        jquery: options.jquery ? path.basename(options.jquery) : null
     }, function (err, data) {
         if (err) {
             return cb(err);
         }
         fs.writeFile(
-            path.join(outputfolder, details.name + '.html'),
+            path.join(options.dstFolder, details.name + '.html'),
             data,
             cb
         );
@@ -336,19 +343,19 @@ function publishMeat(
     Generates the published form of a given package.
 */
 function makePublishedPackage(
+    options,
     details,
     packageMap,
-    outputfolder, 
     cb
 ) {
     async.parallel([
         function (cb) {
             checkOlderOrInvalid(
-                path.join(outputfolder, details.name, details.name + '.js'),
+                path.join(options.dstFolder, details.name, details.name + '.js'),
                 details.mostRecentJSDate,
                 function (err, older) {
                     if (older) {
-                        publishJSFiles(details, packageMap, outputfolder, cb);
+                        publishJSFiles(options, details, packageMap, cb);
                     } else {
                         cb(err);
                     }
@@ -357,23 +364,23 @@ function makePublishedPackage(
         },
         function (cb) {
             async.forEach(details.other, function (f, cb) {
-				//console.log('>>>> ' + details.name + ' ' + details.dirname + ' ' + f + ' ' + outputfolder)                    
                 publishAsset(
+                    options,
                     details.name, 
                     details.dirname, 
                     f, 
-                    outputfolder,
                     cb
                 );
             }, cb);
         },
         function (cb) {
+// FIXME: publishHtml does not depend on jquery        
             checkOlderOrInvalid(
-                path.join(outputfolder, details.name + '.html'),
+                path.join(options.dstFolder, details.name + '.html'),
                 details.mostRecentJSDate,
                 function (err, older) {
                     if (older) {
-                        publishHtml(details, packageMap, outputfolder, cb);
+                        publishHtml(options, details, packageMap, cb);
                     } else {
                         cb(err);
                     }
@@ -381,7 +388,14 @@ function makePublishedPackage(
             );
         },
         function (cb) {
-            publishMeat(outputfolder, cb);
+            publishMeat(options.dstFolder, cb);
+        },
+        function (cb) {
+            if (options.jquery) {
+                copyFileIfOutdated(options.jquery, options.dstFolder, cb);
+            } else {
+                cb(null);
+            }
         }
     ], cb);
     
@@ -501,11 +515,11 @@ function loadPackageDetails(packageFile, cb) {
 /**
     Processes a package.json file that has been loaded with its "details".
 */
-function processPackageDetails(details, packageMap, outputfolder,  cb) {
+function processPackageDetails(options, details, packageMap, cb) {
     var dirname = details.dirname,
         // we should use the package.name for the packagename
         packagename = details.name,
-        publishdir = path.join(outputfolder, packagename);
+        publishdir = path.join(options.dstFolder, packagename);
 
     // create an output dir for this package
     createFolder(publishdir, function (err) {
@@ -513,9 +527,9 @@ function processPackageDetails(details, packageMap, outputfolder,  cb) {
             return cb(err);
         }
         makePublishedPackage(
+            options,
             details,
             packageMap,
-            outputfolder,            
             cb
         );
     });
@@ -524,11 +538,11 @@ function processPackageDetails(details, packageMap, outputfolder,  cb) {
 /**
     Processes multiple package details (the packages are given as a package map).
 */
-function processMultiplePackageDetails(packages, dstFolder, cb) {
+function processMultiplePackageDetails(options, packages, cb) {
     async.forEach(
         Object.keys(packages), 
         function (pd, cb) {            
-            processPackageDetails(packages[pd], packages, dstFolder, cb);
+            processPackageDetails(options, packages[pd], packages, cb);
         },
         cb
     );
@@ -632,12 +646,12 @@ function findPackages(folderArray, cb) {
     This function regenerates all packages.
     note: srcFolder can be a string or an array of strings
 */
-function makeAll(srcFolder, dstFolder, cb) {
-    findPackages(srcFolder, function (err, packages) {
+function makeAll(options, cb) {
+    findPackages(options.srcFolder, function (err, packages) {
         if (err) {
             return cb(err);
         }
-        processMultiplePackageDetails(packages, dstFolder, cb);
+        processMultiplePackageDetails(options, packages, cb);
     });
 }
 
@@ -645,8 +659,8 @@ function makeAll(srcFolder, dstFolder, cb) {
     This function regenerates a single package.
     note: srcFolder can be a string or an array of strings
 */
-function makePackage(srcFolder, dstFolder, packageName, cb) {
-    findPackages(srcFolder, function (err, packages) {
+function makePackage(options, packageName, cb) {
+    findPackages(options.srcFolder, function (err, packages) {
         var deps;
         if (err) {
             return cb(err);
@@ -656,7 +670,7 @@ function makePackage(srcFolder, dstFolder, packageName, cb) {
         } catch (e) {
             return cb(e);
         }
-        processMultiplePackageDetails(deps, dstFolder, cb);
+        processMultiplePackageDetails(options, deps, cb);
     });        
 }
 
@@ -665,7 +679,7 @@ function makePackage(srcFolder, dstFolder, packageName, cb) {
     a package name is specified).
     note: srcFolder can be a string or an array of strings
 */
-function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
+function makeFile(options, dstFolderRelativeFilePath, cb) {
     // the provided relative path should be relative to the dstFolder
     // and consequently the first subdir should be the package name
     var assetFolder = path.normalize(dstFolderRelativeFilePath),
@@ -681,31 +695,124 @@ function makeFile(srcFolder, dstFolder, dstFolderRelativeFilePath, cb) {
         // FIXME
         // nothing to regenerate (maybe in fact the meat.js thing)
         publishMeat(
-            dstFolder,
+            options.dstFolder,
             cb
         );
         return;
     }    
     // non optimal but ok for now
-    makePackage(srcFolder, dstFolder, assetFolderRoot, cb);
+    makePackage(options, assetFolderRoot, cb);
 }
+
+/**
+    Parses the command line for creating the options object.
+    {
+        srcFolder: [],
+        dstFolder: "string",
+        // optional
+        jQuery: "path to jquery's .js file",
+        // optional, not yet supported
+        jsmin: true|false,
+        jslint: true|false
+    }
+    
+    // command line args:
+    -jquery=path    includes jquery using the specified path to the jquery source
+    // not yet supported
+    -hide=global1,global2,globaln makes some globals hidden to modules (ex: hide window or document)
+    -nohide=module1,module2,module3 modules that should see everything
+    
+    followed by multiple src folders
+    followed by one dst folder
+*/
+function processArgs(args) {
+    var options = { srcFolder: []},
+        filters;
+    filters = [
+        {
+            filter: /^--help$/,
+            name: '--help',
+            help: 'displays help information',
+            action: function (pat) {
+                filters.forEach(function (f) {
+                    console.log(f.name + ': ' + f.help);
+                });
+            }
+        },
+        {
+            filter: /^-jquery=(.*)$/,
+            name: '-jquery=filepath',
+            help: 'includes and integrates jquery using the provided sources',
+            action: function (pat) {
+                options.jquery = pat[1];
+            }
+        },
+        {
+            filter: /^-only=(.*)$/,
+            name: '-only=pathRelativeToDstFolder',
+            help: 'only remakes the specified file',
+            action: function (pat) {
+                options.only = pat[1];
+            }
+        },
+        {
+            filter: /.*/,
+            name: 'srcFolder [srcFolder2...srcFolderN] dstFolder',
+            help: 'src folder',
+            action: function (pat) {
+                options.srcFolder.push(pat[0]);
+            }
+        }            
+    ];
+
+    // filter the args
+    args.forEach(function (a) {
+        filters.some(function (f) {
+            var m = f.filter.exec(a);
+            if (m) {
+                f.action(m);
+                return true;
+            }
+            return false;
+        });
+    });
+    // fix the object for the dst Folder
+    if (options.srcFolder.length > 1) {
+        options.dstFolder = options.srcFolder.pop();
+    } else {
+        // failure
+        options = null;
+    }
+    return options;
+}
+
 
 /**
     Command line support.
 */
-if (process.argv.length === 4 && process.argv[1] === __filename) {
-    makeAll(process.argv[2], process.argv[3], function (err) {
-        if (err) {
-            console.log(err);
+(function () {
+    var options;
+    if (process.argv[1] === __filename) {
+        options = processArgs(process.argv.slice(2));
+        if (options) {
+            if (options.only) {
+                makeFile(options, options.only, function (err) {
+                    if (err) {
+                        console.log(err);
+                    }
+                });
+            } else {
+                makeAll(options, function (err) {
+                    if (err) {
+                        console.log(err);
+                    }
+                });        
+            }
+        } else {        
+            processArgs(['--help']);
         }
-    });
-} else if (process.argv.length === 5) {
-    makeFile(process.argv[2], process.argv[3], process.argv[4], function (err) {
-        if (err) {
-            console.log(err);
-        }
-    });
-}
+    }
+}());
 
 /**
     Library support.
@@ -713,3 +820,4 @@ if (process.argv.length === 4 && process.argv[1] === __filename) {
 exports.makeAll = makeAll;
 exports.makePackage = makePackage;
 exports.makeFile = makeFile;
+exports.processArgs = processArgs;

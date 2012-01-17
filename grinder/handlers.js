@@ -2,6 +2,7 @@
     urls.js
     Copyright (c) Hugo Windisch 2012 All Rights Reserved
 */
+/*jslint regexp: false */
 var async = require('async'),
     grind = require('./grind'),
     fs = require('fs'),
@@ -18,10 +19,9 @@ var async = require('async'),
     Handler for statically serving files.
 */
 exports.staticServe = function (req, res, match, cxt) {
-    console.log(match[1]);
     async.waterfall([
         function (cb) {
-            grind.makeFile(cxt.srcFolder, cxt.dstFolder, match[1], cb);
+            grind.makeFile(cxt, match[1], cb);
         },
         function (data, cb) {
             var ext = /\.([^.]*)$/,
@@ -37,7 +37,7 @@ exports.staticServe = function (req, res, match, cxt) {
                 res.writeHead(404);
                 res.end();
             });
-            rs.once('fd', function () {
+            rs.once('open', function (fd) {
                 res.writeHead(200, {'Content-Type': mime});
             });
 

@@ -2,11 +2,13 @@
     meat.js
     Copyright (c) Hugo Windisch 2012 All Rights Reserved
 */
+/*globals jQuery */
 function define(id, dependencies, fcn) {
     // at this time, we don't support runtime loading, and we do nothing
     // with dependencies (we could, at the very least, check them though)
     define.meat.addModuleFile(id, fcn);
 }
+define.amd = {};
 define.meat = {
     // these are the loaded packages, not necessarily 'require'd yet
     packages: {
@@ -21,9 +23,31 @@ define.meat = {
             };
         }
     },
+    // this will integrate with jQuery
+    supportJQuery: function (require) {
+        if (jQuery) {
+            jQuery.noConflict();
+            // now we can integrate ourself to jquery
+            this.addModuleFile('jQuery', function (require, exports, module) {
+                exports.jQuery = jQuery;
+            });
+            // we can also allow any jQuery code to see our modules,
+            // through jQuery.fn.meat(modulename, function, args)
+            if (require) {
+                var args = [], i;
+                for (i = 2; i < arguments.length; i += 1) {
+                    args.push(arguments[i]);
+                }
+                jQuery.fn.meat = function (thePackage, method) {
+                    return require(thePackage)[method].apply(this, arguments);
+                };
+            }
+        }
+        // this has been done, no reason to do it again
+        this.supportJQuery = function () {};
+    },
     // this adds a module file to the loaded modules
     addModuleFile: function (id, fcn) {
-
         var splitId = id.split('/'),
             packageName = splitId[0];
         this.ensurePackage(packageName);
