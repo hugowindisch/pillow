@@ -25,6 +25,14 @@ dust.loadSource(
 dust.loadSource(
     dust.compile(
         fs.readFileSync(
+            path.join(__dirname, 'templates/header.js')
+        ).toString(), 
+        'headerTemplate'
+    )
+);
+dust.loadSource(
+    dust.compile(
+        fs.readFileSync(
             path.join(__dirname, 'templates/component.html')
         ).toString(), 
         'componentTemplate'
@@ -172,13 +180,14 @@ function publishAsset(
 function publishJSFile(
     modulename, 
     modulerootfolder, 
-    filename,  
+    filename,
+    dependencies,
     jsstream, 
     cb
 ) {    
     // we want to split the path
     //filename.split(
-    var meatPath = filename.slice(modulerootfolder.length + 1, -3);
+    var meatPath = modulename + filename.slice(modulerootfolder.length, -3);
     
     async.waterfall([
         function (cb) {
@@ -192,7 +201,8 @@ function publishJSFile(
             dust.render('srcTemplate', { 
                 modulename: modulename,
                 filepath: meatPath,
-                code: indented
+                code: indented,
+                dependencies: dependencies
             }, cb);
             
         },
@@ -204,28 +214,79 @@ function publishJSFile(
 }
 
 /**
+    Finds by guessing the module path.
+    These will be tried in order:
+        packagname.js
+        /lib/packagename.js
+        
+    getMainModulePath 
+*/
+function getMainModulePath(details) {
+    if (details.json.main) {
+        return details.json.main;
+    }
+    var regExp = new RegExp(details.name + '\\.js$'),
+        res;
+    details.js.forEach(function (n) {
+        var s;
+        if (regExp.test(n)) {
+            s = details.name + n.slice(details.dirname.length, -3);
+            if (!res || s.length < res.length) {
+                res = s;
+            }
+        }
+    });
+    return res;
+}
+
+/**
     Publishes all the js files in the package (the files are combined into
     one single js file).
 */
 function publishJSFiles(
     details,
+    packageMap,
     outputfolder,
     cb
 ) {
     var publishdir = path.join(outputfolder, details.name),
         publishJsStream = path.join(publishdir, details.name + '.js'),
-        stream = fs.createWriteStream(publishJsStream);        
-    // make sure we know how to find the main file of the package
-    stream.write('meat.setPackageMainFile(\'' + details.name + '\', \'lib/' + details.name + '\');\n');
+        stream = fs.createWriteStream(publishJsStream),
+        dependencies = [ ],
+        deps = getPackageDependencies(packageMap, details.name);
+    if (deps) {
+        Object.keys(deps).forEach(function (d) {
+            if (d !== details.name) {
+                dependencies.push(d);
+            }
+        });
+    }
+        
     async.forEach(details.js, function (f, cb) {
         publishJSFile(
             details.name, 
             details.dirname, 
-            f, 
+            f,
+            dependencies,
             stream,
             cb
         );
-    }, cb);
+    }, function (err) {
+        if (err) {
+            return cb(err);
+        }
+        dust.render('headerTemplate', { 
+            modulename: details.name,
+            dependencies: dependencies,
+            modulepath: getMainModulePath(details)
+        }, function (err, out) {
+            if (err) {
+                return cb(err);
+            }
+            stream.write(out);
+            cb(err);
+        }); 
+    });   
 }
 
 /**
@@ -287,7 +348,7 @@ function makePublishedPackage(
                 details.mostRecentJSDate,
                 function (err, older) {
                     if (older) {
-                        publishJSFiles(details, outputfolder, cb);
+                        publishJSFiles(details, packageMap, outputfolder, cb);
                     } else {
                         cb(err);
                     }

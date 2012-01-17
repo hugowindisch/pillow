@@ -2,7 +2,12 @@
     meat.js
     Copyright (c) Hugo Windisch 2012 All Rights Reserved
 */
-var meat = {
+function define(id, dependencies, fcn) {
+    // at this time, we don't support runtime loading, and we do nothing
+    // with dependencies (we could, at the very least, check them though)
+    define.meat.addModuleFile(id, fcn);
+}
+define.meat = {
     // these are the loaded packages, not necessarily 'require'd yet
     packages: {
     },
@@ -17,13 +22,18 @@ var meat = {
         }
     },
     // this adds a module file to the loaded modules
-    addModuleFile: function (packageName, filePath, fcn) {
+    addModuleFile: function (id, fcn) {
+
+        var splitId = id.split('/'),
+            packageName = splitId[0];
         this.ensurePackage(packageName);
-        this.packages[packageName].files[filePath] = fcn;
-    },
-    setPackageMainFile: function (packageName, filePath) {
-        this.ensurePackage(packageName);
-        this.packages[packageName].mainFile = filePath;
+        // currently, we assume that when a package name without path info is
+        // defined, the main file is defined
+        if (splitId.length === 1) {
+            this.packages[packageName].mainFile = fcn;
+        } else {    
+            this.packages[packageName].files[splitId.slice(1).join('/')] = fcn;
+        }
     },
     // transforms a relative path to an absolute path
     resolvePathArray: function (path, currentPath) {
@@ -53,7 +63,7 @@ var meat = {
         return cps;
     },
     // this is the top level require
-    makeRequire: function (applicationDomain, currentPath) {
+    makeRequire: function (applicationDomain, currentPath, mainModule) {
         var that = this;
         function require(moduleName) {
             var pathArray,
@@ -62,31 +72,16 @@ var meat = {
                 fullPath,
                 packageName,
                 exports,
+                module,
                 p,
                 m;
                 
-            // the path can be either a module name OR a file
-            // if it is NOT a path (i.e. 'potato'), we convert it
-            // right now
-            if (moduleName.indexOf('/') === -1) {
-                p = that.packages[moduleName];
-                if (!p) {
-                    throw new Error('Unavailable package ' + moduleName);
-                }
-                path = moduleName + '/' + p.mainFile;
-                
-            } else {
-                // we must make the path absolute
-                path = moduleName;
-            }            
+            path = moduleName;
             pathArray = that.resolvePathArray(path, currentPath);
-            //console.log(pathArray);            
             fullPath = pathArray.join('/');
             packageName = pathArray[0];
             path = pathArray.slice(1).join('/');
             fullPathDirectory = pathArray.slice(0, pathArray.length - 1).join('/');
-            
-            console.log(fullPath + ' ' + packageName + ' ' + path + ' ' + fullPathDirectory);
             
             // if the module can't be found
             exports = applicationDomain[fullPath];
@@ -95,42 +90,33 @@ var meat = {
                 if (!p) {
                     throw new Error('Unavailable package ' + packageName);
                 }
-                m = p.files[path];
+                if (pathArray.length === 1) {
+                    m = p.mainFile;
+                } else {
+                    m = p.files[path];
+                }
                 if (!m) {
                     throw new Error('Unavailable module ' + path);
                 }
                 exports = applicationDomain[fullPath] = {};
+                module = { id: fullPath, exports: exports };
+                // the main module is the first one to be required
+                if (!mainModule) {
+                    mainModule = module;
+                }
                 m(
-                    that.makeRequire(applicationDomain, fullPathDirectory),
+                    that.makeRequire(applicationDomain, fullPathDirectory, mainModule),
                     exports,
-                    { id: '/' + fullPath, exports: exports }
+                    module
                 );
+                // just like node does, allow to replace exports
+                exports = applicationDomain[fullPath] = module.exports;
             }
             return exports;
         }
+        // setup main (this will depend on what topmost module is required)
+        require.main = mainModule;
         return require;
     }    
 };
-/*
-function test() {
-    meat.addModuleFile('test1', 'src/test1', function (require, exports, module) {
-        require('./gug');
-        function abc() {
-            console.log('hello');
-        }
-        abc();
-    });
-    meat.setPackageMainFile('test1', 'src/test1');
-    meat.addModuleFile('test1', 'src/gug', function (require, exports, module) {
-        function abc() {
-            console.log('hello from gug');
-        }
-        abc();
-    });
-    var domain = {},
-        require = meat.makeRequire(domain, '');
-    require('test1');
-}
-*/
-//test();
 

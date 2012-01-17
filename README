@@ -11,11 +11,20 @@ meat.js is the small js library that allows to require modules on the client.
     : check the versionning when dealing with dependencies
     : lint
     : minimize
-    : generate compilation report on any request that failed
-
-    : add a way to know that you are the topmost component (in the meat thing...) so
-        you can startup differently when you are first required if you are the topmost thing.
-		(-- I'M NOT SURE ABOUT THIS ONE--)
+    : generate compilation report on any request that failed		
+        
+    : error reporting (before open sourcing)
+    : support for node modules (before open sourcing)
+    
+    : could have a more data driven way of describing the build process:
+        {
+            gugu.html: { dependsOn: alljs, build: asyncFunction }
+            *.jpg: 
+        }        
+        
+    : support the asynchronous (and the syncrhonous) versions of require but make the synchronous one
+        FAIL if the thing is not loaded.
+        
     
     done
     ----
@@ -30,5 +39,13 @@ meat.js is the small js library that allows to require modules on the client.
     : streaming for serving files
     : real 'make' capability (minimal regeneration)
 	: in the html we need DEEP dependencies not only shallow ones
-
+    : generate code that respects the CommonJS AMD specification and define
+        the 'define' function so that jQuery can be supported straight out
+        of the box
+    : add a way to know that you are the topmost component (in the meat thing...) so
+        you can startup differently when you are first required if you are the topmost thing.
+		(-- I'M NOT SURE ABOUT THIS ONE--)
+		
+		THIS EXISTS IN THE SPEC: require.main
+    : use "main" in the package definition 
 
