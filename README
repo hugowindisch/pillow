@@ -54,4 +54,5 @@ meat.js is the small js library that allows to require modules on the client.
     : use "main" in the package definition 
     : support command line options
     : support jQuery as a command line option
+    : add an option to load all dependent css files in the generated html
 

@@ -12,7 +12,7 @@ var fs = require('fs'),
     path = require('path'),
     async = require('async'),
     dust = require('dust'),
-    assetExt = { 'jpg': 0, 'png': 0, 'gif': 0 };
+    assetExt = { 'jpg': 0, 'png': 0, 'gif': 0, 'html': 0, 'json': 0, 'css': 0 };
 
 // disable newline and whitespace removal
 dust.optimizers.format = function (ctx, node) { 
@@ -137,6 +137,38 @@ function checkOlderOrInvalid(fn, date, cb) {
 }
 
 /**
+    Finds files that matches a given pattern in an object 
+    { filename: filestat }
+*/
+function filterStats(stats, regexp) {
+    var res = {};
+    Object.keys(stats).forEach(function (s) {
+        if (regexp.test(s)) {
+            res[s] = stats[s];
+        }
+    });
+    return res;
+}
+
+/**
+    Finds the latest date for a given regexp
+    { filename: filestat }
+*/
+function getMostRecent(stats, regexp) {
+    var s = filterStats(stats, regexp),
+        ret = new Date();
+    ret.setTime(0);
+    Object.keys(s).forEach(function (k) {
+        var stat = s[k];
+        if (stat.mtime.getTime() > ret.getTime()) {
+            ret = stat.mtime;
+        }
+    });
+    return ret;
+}
+
+
+/**
     Returns a package map that contains a package an all its recursive dependencies.
 */
 function getPackageDependencies(packageMap, packageName) {
@@ -158,6 +190,18 @@ function getPackageDependencies(packageMap, packageName) {
     }
     var res = {};
     gd(res, packageName);
+    return res;
+}
+
+/**
+    Returns a unified { filename: stats} for a package map.
+*/
+function getFileMap(packageMap) {
+    var res = {};
+    Object.keys(packageMap).forEach(function (k) {
+        var p = packageMap[k];
+        concatObject(res, p.stats);
+    });
     return res;
 }
 
@@ -253,13 +297,13 @@ function publishJSFiles(
     options,
     details,
     packageMap,
+    deps,
     cb
 ) {
     var publishdir = path.join(options.dstFolder, details.name),
         publishJsStream = path.join(publishdir, details.name + '.js'),
         stream = fs.createWriteStream(publishJsStream),
-        dependencies = [ ],
-        deps = getPackageDependencies(packageMap, details.name);
+        dependencies = [ ];
     if (deps) {
         Object.keys(deps).forEach(function (d) {
             if (d !== details.name) {
@@ -303,18 +347,25 @@ function publishHtml(
     options,
     details,
     packageMap,
+    deps,
     cb
 ) {
     // we need to load all components
     var dependencies = [ ],
-        deps = getPackageDependencies(packageMap, details.name);
+        cssFileMap = options.css ? filterStats(getFileMap(deps), /\.css$/) : {},
+        cssFiles = [];
     if (deps) {
         Object.keys(deps).forEach(function (d) {
             dependencies.push(path.join(d, d + '.js'));
         });
+        Object.keys(cssFileMap).forEach(function (k) {
+            var details = cssFileMap[k].details;
+            cssFiles.push('/' + details.name + k.slice(details.dirname.length));
+        }); 
     }
     dust.render('componentTemplate', { 
         dependencies: dependencies,
+        css: cssFiles,
         main: details.name,
         jquery: options.jquery ? path.basename(options.jquery) : null
     }, function (err, data) {
@@ -348,14 +399,19 @@ function makePublishedPackage(
     packageMap,
     cb
 ) {
+    var mostRecentJSDate = getMostRecent(details.stats, new RegExp("(\\.js$|" + details.name + "\\.json)")),
+        deps = getPackageDependencies(packageMap, details.name),
+        depsFileMap = getFileMap(deps),
+        cssMostRecentDate = options.css ? getMostRecent(depsFileMap, /\.css$/) : mostRecentJSDate;
+
     async.parallel([
         function (cb) {
             checkOlderOrInvalid(
                 path.join(options.dstFolder, details.name, details.name + '.js'),
-                details.mostRecentJSDate,
+                mostRecentJSDate,
                 function (err, older) {
                     if (older) {
-                        publishJSFiles(options, details, packageMap, cb);
+                        publishJSFiles(options, details, packageMap, deps, cb);
                     } else {
                         cb(err);
                     }
@@ -374,13 +430,16 @@ function makePublishedPackage(
             }, cb);
         },
         function (cb) {
-// FIXME: publishHtml does not depend on jquery        
+            if (mostRecentJSDate.getTime() > cssMostRecentDate.getTime()) {
+                cssMostRecentDate = mostRecentJSDate;
+            }
+            // FIXME: publishHtml does not depend on jquery (important?)
             checkOlderOrInvalid(
                 path.join(options.dstFolder, details.name + '.html'),
-                details.mostRecentJSDate,
+                cssMostRecentDate,
                 function (err, older) {
                     if (older) {
-                        publishHtml(options, details, packageMap, cb);
+                        publishHtml(options, details, packageMap, deps, cb);
                     } else {
                         cb(err);
                     }
@@ -410,16 +469,16 @@ function makePublishedPackage(
         other: []
     }
 */
-function findPackageFiles(folder, result, cb) {
+function findPackageFiles(folder, details, cb) {
     // make sure we have what we need
-    if (!result.js) {
-        result.js = [];
+    if (!details.js) {
+        details.js = [];
     }
-    if (!result.other) {
-        result.other = [];
+    if (!details.other) {
+        details.other = [];
     }
-    if (!result.stats) {
-        result.stats = {};
+    if (!details.stats) {
+        details.stats = {};
     }
     // do the async processing
     async.waterfall(
@@ -454,25 +513,23 @@ function findPackageFiles(folder, result, cb) {
                             matches,
                             ffn = path.join(folder, file.filename);
                         if (file.stats.isFile()) {
+                            // keep a pointer to the details
+                            file.stats.details = details;
                             // js file                            
                             if (isJs.test(file.filename)) {
-                                result.stats[ffn] = file.stats;
-                                // also keep the date of the most recent js file
-                                if (!result.mostRecentJSDate || result.mostRecentJSDate.getTime() < file.stats.mtime.getTime()) {
-                                    result.mostRecentJSDate = file.stats.mtime;
-                                }
-                                result.js.push(ffn);
+                                details.stats[ffn] = file.stats;
+                                details.js.push(ffn);
                             } else {
                                 matches = getExt.exec(file.filename);
                                 if (matches && assetExt[matches[1]] !== undefined) {
-                                    result.stats[ffn] = file.stats;
-                                    result.other.push(ffn);
+                                    details.stats[ffn] = file.stats;
+                                    details.other.push(ffn);
                                 }
                             }
                             // nothing really async here
                             cb(null);
                         } else if (file.stats.isDirectory()) {
-                            findPackageFiles(ffn, result, cb);
+                            findPackageFiles(ffn, details, cb);
                         }
                     }, 
                     cb
@@ -480,7 +537,7 @@ function findPackageFiles(folder, result, cb) {
             }
         ],
         function (err) {
-            cb(err, result);
+            cb(err, details);
         }
     );
 }
@@ -491,9 +548,8 @@ function findPackageFiles(folder, result, cb) {
     the paths of all its contained files (js, other like gifs and jpgs)
 */
 function loadPackageDetails(packageFile, cb) {
-    var result = {
+    var details = {
         filename: packageFile.filename,
-        mostRecentJSDate: packageFile.stats.mtime,
         // FIXME: this does not use the package info
         dirname: path.dirname(packageFile.filename),
         js: [],
@@ -504,10 +560,10 @@ function loadPackageDetails(packageFile, cb) {
             return cb(err);
         }
         // FIXME: try catch
-        result.json = JSON.parse(data.toString());
-        result.name = result.json.name || path.basename(result.dirname);
+        details.json = JSON.parse(data.toString());
+        details.name = details.json.name || path.basename(details.dirname);
         
-        findPackageFiles(result.dirname, result, cb);
+        findPackageFiles(details.dirname, details, cb);
     });
 }
 
@@ -753,6 +809,14 @@ function processArgs(args) {
             help: 'only remakes the specified file',
             action: function (pat) {
                 options.only = pat[1];
+            }
+        },
+        {
+            filter: /^-css$/,
+            name: '-css',
+            help: 'Includes all dependent css files in the resulting html',
+            action: function (pat) {
+                options.css = true;
             }
         },
         {

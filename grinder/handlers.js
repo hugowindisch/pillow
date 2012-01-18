@@ -13,6 +13,7 @@ var async = require('async'),
         png: 'image/png',
         html: 'text/html',
         json: 'application/json',
+        css: 'text/css',
         js: 'application/ecmascript'
     };
 /**
