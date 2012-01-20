@@ -360,7 +360,7 @@ function publishHtml(
         });
         Object.keys(cssFileMap).forEach(function (k) {
             var details = cssFileMap[k].details;
-            cssFiles.push('/' + details.name + k.slice(details.dirname.length));
+            cssFiles.push(details.name + k.slice(details.dirname.length));
         }); 
     }
     dust.render('componentTemplate', { 

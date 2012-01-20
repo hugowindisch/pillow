@@ -51,13 +51,17 @@ define.meat = {
         var splitId = id.split('/'),
             packageName = splitId[0];
         this.ensurePackage(packageName);
-        // currently, we assume that when a package name without path info is
-        // defined, the main file is defined
-        if (splitId.length === 1) {
-            this.packages[packageName].mainFile = fcn;
-        } else {    
-            this.packages[packageName].files[splitId.slice(1).join('/')] = fcn;
+        // if the nonstandard defineMain is never called, we assume that the
+        // main file of a package is the first one that we see that is named
+        // with the sme name as the package
+        if (!this.packages[packageName].mainFile && (splitId.length > 1) && (splitId[0] === splitId[splitId.length - 1])) {
+            this.packages[packageName].mainFile = id;
         }
+        this.packages[packageName].files[splitId.slice(1).join('/')] = fcn;
+    },
+    defineMain: function (packageName, modulepath) {
+        this.ensurePackage(packageName);
+        this.packages[packageName].mainFile = modulepath;
     },
     // transforms a relative path to an absolute path
     resolvePathArray: function (path, currentPath) {
@@ -100,7 +104,13 @@ define.meat = {
                 p,
                 m;
                 
-            path = moduleName;
+            // if the moduleName is a package name
+            if (that.packages[moduleName]) {
+                // replace the moduleName by the mainFile of the package
+                path = that.packages[moduleName].mainFile;
+            } else {
+                path = moduleName;
+            }
             pathArray = that.resolvePathArray(path, currentPath);
             fullPath = pathArray.join('/');
             packageName = pathArray[0];
@@ -114,11 +124,7 @@ define.meat = {
                 if (!p) {
                     throw new Error('Unavailable package ' + packageName);
                 }
-                if (pathArray.length === 1) {
-                    m = p.mainFile;
-                } else {
-                    m = p.files[path];
-                }
+                m = p.files[path];
                 if (!m) {
                     throw new Error('Unavailable module ' + path);
                 }

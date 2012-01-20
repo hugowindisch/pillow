@@ -1,4 +1,5 @@
-define('{modulename}', ['require', 'exports', 'module'].concat([ {#dependencies}'{.}'{@sep}, {/sep}{/dependencies}]), function (require, exports, module) {
-    module.exports = require('{modulepath}');
-});
+if (define.meat) {
+    // I don't know how the amd spec handles this (if it does)
+    define.meat.defineMain('{modulename}', '{modulepath}');
+}
 
