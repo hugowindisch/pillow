@@ -1,7 +1,9 @@
 {
     "name": "meatgrinder",
     "version": "0.0.1",
+    "main": "./lib/meatgrinder.js",
     "dependencies": {
-        "async": "0.0.1"
+        "async": "0.1.15",
+        "dust": "0.3.0"
     }
 }
