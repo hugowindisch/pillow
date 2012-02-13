@@ -1,3 +1,4 @@
+#!/usr/local/bin/node
 /**
     grind.js
         This will grind directories, find the package.json files and then
