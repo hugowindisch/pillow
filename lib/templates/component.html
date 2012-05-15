@@ -1,5 +1,6 @@
 <html>
 <head>
+    <title>{main}</title>
 {#css}    <link rel="stylesheet" type="text/css" href="{.}">{~n}{/css}
 {#jquery}    <script src = "{.}"></script>{/jquery}
     <script src = "meat.js"></script>
@@ -12,7 +13,7 @@
             // add support for jQuery, and allow jQuery code
             // to use our modules
             define.meat.supportJQuery(require);
-{/jquery}                
+{/jquery}
             require('{main}');
         }
     </script>
@@ -20,4 +21,3 @@
 <body>
 </body>
 </html>
-
