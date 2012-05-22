@@ -1,20 +1,23 @@
 <html>
 <head>
-    <title>{main}</title>
-{#css}    <link rel="stylesheet" type="text/css" href="{.}">{~n}{/css}
-{#jquery}    <script src = "{.}"></script>{/jquery}
+    <title>${main}</title>
+{{each css}}    <link rel="stylesheet" type="text/css" href="${$value}">
+{{/each}}
+{{each css}}    <script src = "${$value}"></script>
+{{/each}}
     <script src = "meat.js"></script>
-{#dependencies}    <script src = "{.}"></script>{~n}{/dependencies}
+{{each dependencies}}    <script src = "${$value}"></script>
+{{/each}}
     <script>
         window.onload = function () {
             var domain = {},
                 require = define.meat.makeRequire(domain, '');
-{#jquery}
+{{if jquery}}
             // add support for jQuery, and allow jQuery code
             // to use our modules
             define.meat.supportJQuery(require);
-{/jquery}
-            require('{main}');
+{{/if}}
+            require('${main}');
         }
     </script>
 </head>
