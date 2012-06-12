@@ -31,12 +31,18 @@ With the following options:
 
 **-minify**: Minifies js file while packaging them
 
+**-nomake=package1,package2,package3** : Prevents some packages from being regenerated
+
+**-port=portnumber**: Uses the specified port in server mode (instead of 1337)
+
+
 Server operation
 ================
 
 **serve.js [options] folder1 [folder2..foldern] outputfolder**
 
-will make all packages loadable as /make/packageName/packageName.js
+will make all packages loadable at
+http://localhost:1337/make/packageName/packageName.js
 
 Structure of the output folder
 ==============================
@@ -61,3 +67,16 @@ The output folder will have the following structure:
 
 Assuming that img1.png was located at ./some/subdir/for/images/img1.png relative
 to the package.json file.
+
+More advanced features
+======================
+
+Pillow supports many different applicationDomains (each applicationDomain
+being able to have his own versions of packages). It also supports loading
+or reloading packages at run time.
+
+
+License
+=======
+
+TBD
