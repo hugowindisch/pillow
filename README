@@ -1,58 +1,52 @@
-MeatGrinder: The package grinder
-================================
-Takes a bunch of packages (package.json) and produces a folder that
-can be statically served allowing to run these packages.
+Pillow scans directories for commonJS packages and makes them accessible
+in the browser (the packages are converted to a directory that can
+be served statically).
 
-meat.js is the small js library that allows to require modules on the client.
+Pillow can operate from the command line or as a server. When running as
+a server it will regenerate everything on the fly.
 
+Images (png, jpg) are also copied to the output folder keeping the original
+folder hierarchy relative to the package.json to which they belong.
 
-    todo
-    ----
-    : check the versionning when dealing with dependencies
-    : lint
-    : minimize
-    : generate compilation report on any request that failed		
-        
-    : error reporting (before open sourcing)
-    : support for node modules (before open sourcing)
-    
-    : could have a more data driven way of describing the build process:
-        {
-            gugu.html: { dependsOn: alljs, build: asyncFunction }
-            *.jpg: 
-        }        
-        
-    : support the asynchronous (and the syncrhonous) versions of require but make the synchronous one
-        FAIL if the thing is not loaded.
-        
-    : verbosity options
-    : options for hiding globals like document and window
-    : support for more node globals (i.e. window.console -> console) __filename & stuff
-        
-    
-    done
-    ----
-    : the javascript require thing
-    : generating an html that requires the module that is the main
-    : server that auto publishes (autogrind)
-    : better support for the require thing (like ... the module thing & other more quirky behaviors)
-    : package dependencies support
-    : multiple directories for grinding (allowing common modules... do we need this?)
-        -> think about this one... this notion is probably useless (I mean the 
-        common modules)
-    : streaming for serving files
-    : real 'make' capability (minimal regeneration)
-	: in the html we need DEEP dependencies not only shallow ones
-    : generate code that respects the CommonJS AMD specification and define
-        the 'define' function so that jQuery can be supported straight out
-        of the box
-    : add a way to know that you are the topmost component (in the meat thing...) so
-        you can startup differently when you are first required if you are the topmost thing.
-		(-- I'M NOT SURE ABOUT THIS ONE--)
-		
-		THIS EXISTS IN THE SPEC: require.main
-    : use "main" in the package definition 
-    : support command line options
-    : support jQuery as a command line option
-    : add an option to load all dependent css files in the generated html
+Command line operation
+======================
 
+process.js [options] folder1 [folder2..foldern] outputfolder
+
+With the following options:
+
+--help: displays help information
+
+-jquery=filepath: includes and integrates jquery using the provided sources
+
+-only=pathRelativeToDstFolder: only remakes the specified file
+
+-cache=packageName,packageName2: Use http caches for the specified package
+
+-cacheext=ext1,ext2,ext3: Use http caches for the specified package
+
+-css: Includes all dependent css files in the resulting html
+
+-html: Generate a package.html
+
+-minify: Minifies js file while packaging them
+
+Server operation
+================
+
+serve.js [options] folder1 [folder2..foldern] outputfolder
+
+will make all packages loadable as /make/packageName/packageName.js
+
+Structure of the output folder
+==============================
+
+The output folder will have the following structure
+output/
+    package1/
+        package1.js
+        some/
+            subdir/
+                for/
+                    images/
+                        img1.png
