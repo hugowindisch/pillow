@@ -3,17 +3,17 @@
     <title>${main}</title>
 {{each css}}    <link rel="stylesheet" type="text/css" href="${$value}">
 {{/each}}
-    <script src = "meat.js"></script>
+    <script src = "pillow.js"></script>
 {{each dependencies}}    <script src = "${$value}"></script>
 {{/each}}
     <script>
         window.onload = function () {
-            var meat = define.meat,
-                require = meat.makeRequire(meat.createApplicationDomain(), '');
+            var pillow = define.pillow,
+                require = pillow.makeRequire(pillow.createApplicationDomain(), '');
 {{if jquery}}
             // add support for jQuery, and allow jQuery code
             // to use our modules
-            meat.supportJQuery(require);
+            pillow.supportJQuery(require);
 {{/if}}
             require('${main}');
         }
