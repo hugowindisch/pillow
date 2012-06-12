@@ -11,30 +11,30 @@ folder hierarchy relative to the package.json to which they belong.
 Command line operation
 ======================
 
-*process.js [options] folder1 [folder2..foldern] outputfolder*
+**process.js [options] folder1 [folder2..foldern] outputfolder**
 
 With the following options:
 
-*--help*: displays help information
+**--help**: displays help information
 
-*-jquery=filepath*: includes and integrates jquery using the provided sources
+**-jquery=filepath**: includes and integrates jquery using the provided sources
 
-*-only=pathRelativeToDstFolder*: only remakes the specified file
+**-only=pathRelativeToDstFolder**: only remakes the specified file
 
-*-cache=packageName,packageName2*: Use http caches for the specified package
+**-cache=packageName,packageName2**: Use http caches for the specified package
 
-*-cacheext=ext1,ext2,ext3*: Use http caches for the specified package
+**-cacheext=ext1,ext2,ext3**: Use http caches for the specified package
 
-*-css*: Includes all dependent css files in the resulting html
+**-css**: Includes all dependent css files in the resulting html
 
-*-html*: Generate a package.html
+**-html**: Generate a package.html
 
-*-minify*: Minifies js file while packaging them
+**-minify**: Minifies js file while packaging them
 
 Server operation
 ================
 
-*serve.js [options] folder1 [folder2..foldern] outputfolder*
+**serve.js [options] folder1 [folder2..foldern] outputfolder**
 
 will make all packages loadable as /make/packageName/packageName.js
 
@@ -42,11 +42,11 @@ Structure of the output folder
 ==============================
 
 The output folder will have the following structure
-    output/
-        package1/
-            package1.js
-            some/
-                subdir/
-                    for/
-                        images/
-                            img1.png
+        output/
+            package1/
+                package1.js
+                some/
+                    subdir/
+                        for/
+                            images/
+                                img1.png
