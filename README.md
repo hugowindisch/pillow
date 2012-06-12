@@ -41,12 +41,23 @@ will make all packages loadable as /make/packageName/packageName.js
 Structure of the output folder
 ==============================
 
-The output folder will have the following structure
-        output/
-            package1/
-                package1.js
-                some/
-                    subdir/
-                        for/
-                            images/
-                                img1.png
+The output folder will have the following structure:
+
+    output/
+
+        package1/
+
+            package1.js
+
+            some/
+
+                subdir/
+
+                    for/
+
+                        images/
+
+                            img1.png
+
+Assuming that img1.png was located at ./some/subdir/for/images/img1.png relative
+to the package.json file.
