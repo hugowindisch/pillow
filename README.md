@@ -11,7 +11,7 @@ folder hierarchy relative to the package.json to which they belong.
 Command line operation
 ======================
 
-**process.js [options] folder1 [folder2..foldern] outputfolder**
+**scan.js [options] folder1 [folder2..foldern] outputfolder**
 
 With the following options:
 
@@ -31,7 +31,8 @@ With the following options:
 
 **-minify**: Minifies js file while packaging them
 
-**-nomake=package1,package2,package3** : Prevents some packages from being regenerated
+**-nomake=package1,package2,package3** : Prevents some packages from being
+regenerated
 
 **-port=portnumber**: Uses the specified port in server mode (instead of 1337)
 
