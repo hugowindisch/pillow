@@ -2,13 +2,15 @@
     "name": "pillow",
     "version": "0.0.1",
     "description": "Client-side (browser) deployment of CommonJS packages",
-    "keywords": [ "client", "browser", "package" ],
-    "author": {
-        "name": "Hugo Windisch"
-    },
+    "keywords": [
+        "client",
+        "browser",
+        "package"
+    ],
+    "author": "Hugo Windisch",
     "bin": {
-        "pillowserve" : "./lib/serve.js",
-        "pillowscan" : "./lib/scan.js"
+        "pillowserve": "./lib/serve.js",
+        "pillowscan": "./lib/scan.js"
     },
     "main": "./lib/serve.js",
     "dependencies": {
@@ -18,5 +20,11 @@
     },
     "engines": {
         "node": ">=0.6.0"
+    },
+    "devDependencies": {},
+    "optionalDependencies": {},
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/hugowindisch/pillow.git"
     }
 }
