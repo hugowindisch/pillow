@@ -1,10 +1,22 @@
 {
     "name": "pillow",
     "version": "0.0.1",
+    "description": "Client-side (browser) deployment of CommonJS packages",
+    "keywords": [ "client", "browser", "package" ],
+    "author": {
+        "name": "Hugo Windisch"
+    },
+    "bin": {
+        "pillowserve" : "./lib/serve.js",
+        "pillowscan" : "./lib/scan.js"
+    },
     "main": "./lib/serve.js",
     "dependencies": {
-        "async": "0.1.18",
-        "jqtpl": "1.1.0",
-        "jsmin": "1.0.1"
+        "async": ">=0.1.18",
+        "jqtpl": ">=1.1.0",
+        "jsmin": ">=1.0.1"
+    },
+    "engines": {
+        "node": ">=0.6.0"
     }
 }

@@ -3,15 +3,23 @@ in the browser (the packages are converted to a directory that can
 be served statically).
 
 Pillow can operate from the command line or as a server. When running as
-a server it will regenerate everything on the fly.
+a server it will regenerate everything on the fly (remake the packages
+depending on what has changed in the source directories).
 
 Images (png, jpg) are also copied to the output folder keeping the original
 folder hierarchy relative to the package.json to which they belong.
 
+Installation
+============
+npm install -g pillow
+
+
 Command line operation
 ======================
+This assumes the package was installed globally. If not, pillowscan aliases
+to lib/scan.js (i.e. you could run lib/scan.js instead of pillowscan).
 
-**scan.js [options] folder1 [folder2..foldern] outputfolder**
+**pillowscan [options] folder1 [folder2..foldern] outputfolder**
 
 With the following options:
 
@@ -39,8 +47,10 @@ regenerated
 
 Server operation
 ================
+This assumes the package was installed globally. If not, pillowserve aliases
+to lib/serve.js (i.e. you could run lib/serve.js instead of pillowserve).
 
-**serve.js [options] folder1 [folder2..foldern] outputfolder**
+**pillowserve [options] folder1 [folder2..foldern] outputfolder**
 
 will make all packages loadable at
 http://localhost:1337/make/packageName/packageName.js
@@ -76,8 +86,27 @@ Pillow supports many different applicationDomains (each applicationDomain
 being able to have his own versions of packages). It also supports loading
 or reloading packages at run time.
 
-
 License
 =======
 
-TBD
+MIT License
+
+Copyright (C) 2012 Hugo Windisch
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
