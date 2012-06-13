@@ -9,8 +9,8 @@
     ],
     "author": "Hugo Windisch",
     "bin": {
-        "pillowserve": "./lib/serve.js",
-        "pillowscan": "./lib/scan.js"
+        "pillowserve": "./bin/pillowserve.js",
+        "pillowscan": "./bin/pillowscan.js"
     },
     "main": "./lib/serve.js",
     "dependencies": {
@@ -26,5 +26,10 @@
     "repository": {
         "type": "git",
         "url": "git://github.com/hugowindisch/pillow.git"
-    }
+    },
+    "licenses": [
+        {
+          " type": "MIT"
+        }
+    ]
 }

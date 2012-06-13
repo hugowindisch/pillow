@@ -17,7 +17,7 @@ npm install -g pillow
 Command line operation
 ======================
 This assumes the package was installed globally. If not, pillowscan aliases
-to lib/scan.js (i.e. you could run lib/scan.js instead of pillowscan).
+to bin/pillowscan.js.
 
 **pillowscan [options] folder1 [folder2..foldern] outputfolder**
 
@@ -44,16 +44,44 @@ regenerated
 
 **-port=portnumber**: Uses the specified port in server mode (instead of 1337)
 
+example
+-------
+
+pillowscan mypackages myoutput
+
+Will scan mypackages and its subdirectories and generate or update myoutput
+that will contain properly packaged sources and assets.
+
 
 Server operation
 ================
 This assumes the package was installed globally. If not, pillowserve aliases
-to lib/serve.js (i.e. you could run lib/serve.js instead of pillowserve).
+to bin/pillowserve.js.
 
 **pillowserve [options] folder1 [folder2..foldern] outputfolder**
 
-will make all packages loadable at
+will make all packages loadable at:
+
 http://localhost:1337/make/packageName/packageName.js
+
+Library operation
+=================
+
+The following functions are available from the pillow package:
+
+serve
+
+makeAll
+
+makePackage
+
+makeFile
+
+processArgs
+
+findPackages
+
+These will be documented later.
 
 Structure of the output folder
 ==============================
