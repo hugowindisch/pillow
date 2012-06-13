@@ -11,8 +11,6 @@
             var pillow = define.pillow,
                 require = pillow.makeRequire(pillow.createApplicationDomain(), '');
 {{if jquery}}
-            // add support for jQuery, and allow jQuery code
-            // to use our modules
             pillow.supportJQuery(require);
 {{/if}}
             require('${main}');
