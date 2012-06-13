@@ -64,6 +64,10 @@ will make all packages loadable at:
 
 http://localhost:1337/make/packageName/packageName.js
 
+So you can do:
+
+curl -X GET http://localhost:1337/make/packageName/packageName.js
+
 Library operation
 =================
 
