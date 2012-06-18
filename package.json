@@ -1,6 +1,6 @@
 {
     "name": "pillow",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Client-side (browser) deployment of CommonJS packages",
     "keywords": [
         "client",
@@ -16,7 +16,8 @@
     "dependencies": {
         "async": ">=0.1.18",
         "jqtpl": ">=1.1.0",
-        "jsmin": ">=1.0.1"
+        "jsmin": ">=1.0.1",
+        "dox": ">=0.3.1"
     },
     "engines": {
         "node": "*"
