@@ -30,21 +30,6 @@ This assumes the package was installed globally. If not, pillowscan aliases to b
 
 Options:
 
---help                             : displays help information
--jquery=filepath                   : includes and integrates jquery using the provided sources
--only=pathRelativeToWorkGenerated  : only remakes the specified file
--cache=packageName,packageName2    : Use http caches for the specified package
--cacheext=ext1,ext2,ext3           : Use http caches for the specified package
--nomake=package1,package2,package3 : Prevents some packages from being regenerated
--css                               : Includes all dependent css files in the resulting html
--html                              : Generate package.html
--work=path                         : Working directory (defaults to the current directory).
--minify                            : Minifies js file while packaging them
--dox                               : Generates documentation
--lint                              : Lints the sources
--test                              : Generates a test version of the package (named .test.js)
--port=portnumber                   : Uses the specified port in server mode
-
 + **--help**: displays help information
 + **-jquery=filepath**: includes and integrates jquery using the provided sources
 + **-only=pathRelativeToDstFolder**: only remakes the specified file
@@ -66,28 +51,15 @@ Options:
     pillowscan mypackages
 ```
 
-Will scan mypackages and its subdirectories and generate or update ./generated that will contain properly packaged sources and assets.
+Will scan mypackages and its subdirectories and generate or update ./generated that will contain properly packaged sources and assets. The ./generated can be served statically.
 
 ##Server operation
 This assumes the package was installed globally. If not, pillowserve aliases to bin/pillowserve.js.
 
 **pillowserve [options] folder1 [folder2..foldern]**
+Will make all packages loadable at http://localhost:1337/make/packageName/packageName.js, letting you do curl -X GET http://localhost:1337/make/packageName/packageName.js to retrieve the code. The resources (pngs, gifs, etc) will be loadable at: http://localhost:1337/make/packageName/path/to/your/image.png, where path/to/your/image.png is the path, relative to the package.json file.
 
-(see pillowscan for options)
-
-will make all packages loadable at:
-
-http://localhost:1337/make/packageName/packageName.js
-
-So, to get the browser ready version of the packageName package, you can do:
-
-curl -X GET http://localhost:1337/make/packageName/packageName.js
-
-and its resources (pngs, gifs, etc) are loadable at:
-
-http://localhost:1337/make/packageName/path/to/your/image.png
-
-where path/to/your/image.png is the path, relative to the package.json file
+(see pillowscan for the list of options)
 
 ##Middleware operation
 (how to use pillow as a middleware (ex: from an Express application))
@@ -106,6 +78,7 @@ Packages should follow the CommonJS Package 1.0 specification. The following fie
 * **keywords:** The 'ender' keyword designates an ender package. Other keywords are ignored.
 
 ## Example of a pillow package
+This would be the package.json file
 ```
     {
         "name": "http",
@@ -117,6 +90,7 @@ Packages should follow the CommonJS Package 1.0 specification. The following fie
             "url": ">=0.0.1"
         },
         "testDependencies": [ "assert" ],
+        "main": "./lib/http.js",
         "scripts": {
             "test": "testviewer test/test.js"
         },
@@ -126,15 +100,29 @@ Packages should follow the CommonJS Package 1.0 specification. The following fie
     }
 ```
 
-##Special behaviors:
+And the source files are no different from normal nodeJS sourcefiles. For example, http.js could be something like:
 
+```
+    var utils = require('utils'),
+        // we could require another file from the same folder:
+        another = require('./another'),
+        // or from a subfolder
+        fromsub = require('./sub/fromsub');
+
+    function hello() {
+        utils.doSomething();
+    }
+    exports.hello = hello;
+```
+
+
+##Special behaviors:
 * **test folder**: all the files in the directory where the package.json file was found and all subdirectories of this directory are scanned, and all js files are included in the package. The only **exception** is the test folder. The test folder will only be scanned for js files if the -test switch is used. In this case, a packageName.test.js file will be generated and will contain
 
 * **ender packages**: ender packages are supported, but the 'ender.js' file is not used and ender specific runtime functions are not supported. You can install an ender package by doing npm install packageName and then adding the node_modules directory to the list of directories used by pillowscan or pillowserve. Note that only one js module is included, the 'main' module.
 
 
 #Output: Structure of the generated folder
-
 The generated folder will have the following structure:
 
 ```
@@ -161,7 +149,6 @@ So, here's a summary of what you will find in the 'generated' folder:
 The generated folder can be served statically.
 
 #Using Pillow in HTML Files
-
 This section explains how to use the output files and directories generated by pillow.
 
 ##Using define.pillow.loadPackage
@@ -248,6 +235,19 @@ This is how an additional package can be loaded at runtime, in a new application
         }
     );
 ```
+
+#Other Remarks
+
+##Relationship with NPM
+Pillow is very different from NPM. NPM publishes packages to a central repository or installs packages retrieved from a central repository. Pillow takes a package and makes it compatible with the browser. It is possible to install ender packages or pillow packages with NPM and then 'compile' them with pillow.
+
+##Relationship with NodeJS
+Pillow packages are written the same way as NodeJS packages. A NodeJS package can be made compatible with pillow (assuming all its dependencies are also available in pillow) by adding 'pillow' to the list of engines in the package.json file.
+
+##Other similar loaders
+The other similar loaders that I know are:
++ ender
++ requireJS
 
 #License
 MIT License
