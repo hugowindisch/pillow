@@ -30,28 +30,36 @@ This assumes the package was installed globally. If not, pillowscan aliases to b
 
 Options:
 
+--help                             : displays help information
+-jquery=filepath                   : includes and integrates jquery using the provided sources
+-only=pathRelativeToWorkGenerated  : only remakes the specified file
+-cache=packageName,packageName2    : Use http caches for the specified package
+-cacheext=ext1,ext2,ext3           : Use http caches for the specified package
+-nomake=package1,package2,package3 : Prevents some packages from being regenerated
+-css                               : Includes all dependent css files in the resulting html
+-html                              : Generate package.html
+-work=path                         : Working directory (defaults to the current directory).
+-minify                            : Minifies js file while packaging them
+-dox                               : Generates documentation
+-lint                              : Lints the sources
+-test                              : Generates a test version of the package (named .test.js)
+-port=portnumber                   : Uses the specified port in server mode
+
 + **--help**: displays help information
-
 + **-jquery=filepath**: includes and integrates jquery using the provided sources
-
 + **-only=pathRelativeToDstFolder**: only remakes the specified file
-
 + **-cache=packageName,packageName2**: Use http caches for the specified package
-
 + **-cacheext=ext1,ext2,ext3**: Use http caches for the specified package
-
++ **-nomake=package1,package2,package3**: Prevents some packages from being regenerated
 + **-css**: Includes all dependent css files in the resulting html
-
 + **-html**: Generate a package.html
-
++ **-work=path**: Working directory (defaults to the current directory).
 + **-minify**: Minifies js file while packaging them
-
-+ **-nomake=package1,package2,package3** : Prevents some packages from being
-regenerated
-
-**-port=portnumber**: Uses the specified port in server mode (instead of 1337)
-
-**-work=path**: Working directory (defaults to the current directory).
++ **-dox**: Generates documentation
++ **-lint**: Lints the sources
++ **-test**: Generates a test version of the package (named .test.js)
++ **-port=portnumber**: Uses the specified port in server mode (instead of 1337)
++ **-work=path**: Working directory (defaults to the current directory).
 
 ###example
 ```
@@ -91,15 +99,10 @@ Pillow takes packages in input and produces an output directory that can be serv
 Packages should follow the CommonJS Package 1.0 specification. The following fields of a package are currently used by pillow:
 
 * **name:** Lets you define the name of the package. You will then be able to require it using this name.
-
 * **dependencies:** Lets you define the dependencies of the package. When a package is loaded dynamically (using define.pillow.loadPackage), all its recursive dependencies will also be loaded. When an html file is created for a package, all its dependencies will have a link tag.
-
 * **testDependencies:** Lets you define special dependencies that are only needed when your package is used in test mode (i.e. with the -test switch, for generating a packageName.test.js file). This is expressed an array of package names.
-
 * **main:** Lets you define the main module of the package. If this is omitted, './lib/packageName.js' will be used by default.
-
 * **engines:** The pillow engine MUST be defined to tell pillow to use the package. Alternately, if the keywords field contains the 'ender' keyword, the package will also be used (but treated differently, only exporting the main file).
-
 * **keywords:** The 'ender' keyword designates an ender package. Other keywords are ignored.
 
 ## Example of a pillow package
