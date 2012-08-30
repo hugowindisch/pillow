@@ -1,16 +1,17 @@
-Pillow scans directories for commonJS packages and makes them accessible in the browser with the require() function (the packages are converted to a directory that can be served statically).
+#Pillow: A CommonjS Package Loader for the Browser
+Pillow scans directories for commonJS packages and makes them accessible in the browser with the require() function (the source packages are converted to a directory that can be served statically).
 
 Pillow can operate from the command line, as a server or as a middleware. When running as a server or as a middleware it will remake the packages automatically every time they are loaded by http, only rebuilding what has actually changed.
 
 #Features
-* Multiple modules (.js files) per package, multiple source directories, dot notation in require (e.g. require('../something'))
+* Multiple modules (.js files possibly in multiple source directories) per package
 * Support for package resources (png, jpeg, gif, json, css, html, md)
-* Minify Dox and Lint of source files
+* Minify, dox and lint of source files
 * Runtime loading of packages
 * Optional separate application domains
-* Command Line Operation
-* Server Operation (transparent building of all what is loaded)
-* Middleware Operation
+* Command line operation (build using the command line)
+* Server operation (packages are rebuilt when they are loaded through http)
+* Middleware operation
 * Support for ender packages
 
 ##Limitations
