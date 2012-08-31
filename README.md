@@ -5,7 +5,7 @@ Pillow can operate from the command line, as a server or as a middleware. When r
 
 #Features
 * Multiple js files per package
-* Support for package resources (png, jpeg, gif, json, css, html, md)
+* Support for package resources (png, jpg, gif, json, css, html, md)
 * Minify, dox and lint of source files
 * Runtime loading of packages
 * Optional separate application domains
@@ -141,7 +141,7 @@ And the source files are no different from normal nodeJS sourcefiles. For exampl
 ```
 
 ##Special Behaviors:
-* **test folder**: all the files in the directory where the package.json file was found and all subdirectories of this directory are scanned, and all js files are included in the package. The only **exception** is the test folder. The test folder will only be scanned for js files if the -test switch is used. In this case, a packageName.test.js file will be generated and will contain
+* **test folder**: all the files in the directory where the package.json file was found and all subdirectories of this directory are scanned, and all js files are included in the package. The only **exception** is the test folder. The test folder will only be scanned for js files if the -test switch is used. In this case, a packageName.test.js file will be generated and will contain the normal files and the test files.
 
 * **ender packages**: ender packages are supported, but the 'ender.js' file is not used and ender specific runtime functions are not supported. You can install an ender package by doing npm install packageName and then adding the node_modules directory to the list of directories used by pillowscan or pillowserve. Note that only one js module is included, the 'main' module.
 
@@ -150,7 +150,7 @@ And the source files are no different from normal nodeJS sourcefiles. For exampl
 
 + Node Packages: Since there is no special way of writing pillow packages (js files are the same as in Node, and there are no magic wrapper files of any kind), a lot of general purpose NodeJS packages should work directly with pillow. The only thing to do is to add the 'pillow' engine declaration to the package.json file.
 
-+ Swallowapps Packages: Pillow is the foundation of my other project, swallowapps, that is roughly similar to the Flash (TM) authoring tool but that targets html5 (i.e. it is a no-css, no-html, graphic development tool targetting browsers). Inside the swallowapps project, there are many pillow packages (client side versions of Node's http, event, assert and url among others), and all swallowapps applications are packages. I will probably break the swallowapps projects in smaller parts (make the general purpose packages available independently) in the next months, and this will add to the list of existing packages.
++ Swallowapps Packages: Pillow is the foundation of my other project, swallowapps, that is very roughly similar to the Flash (TM) authoring tool but that targets html5 (i.e. it is a no-css, no-html, graphic development tool targetting browsers). Inside the swallowapps project, there are many pillow packages (client side versions of Node's http, event, assert and url among others), and all swallowapps applications are packages. I will probably break the swallowapps projects in smaller parts (make the general purpose packages available independently) in the next months, and this will add to the list of existing packages compatible with pillow.
 
 #Output: Structure of the Generated Folder
 The generated folder will have the following structure:
@@ -233,7 +233,7 @@ You can load additional packages at execution time by calling define.pillow.load
 ###Runtime Loading in the Same Application Domain
 This is how an additional package can be loaded at runtime, in the same application domain:
 
-```html
+```jsavascript
     define.pillow.loadPackage(
         'myPackage',
         null,
@@ -249,7 +249,7 @@ This is how an additional package can be loaded at runtime, in the same applicat
 ###Runtime Loading in a Different Application Domain
 This is how an additional package can be loaded at runtime, in a new application domain (that, inherits from the topmost domain).
 
-```html
+```javascript
     var myDomain = define.pillow.createApplicationDomain();
     define.pillow.loadPackage(
         'myPackage',
@@ -268,7 +268,7 @@ This is how an additional package can be loaded at runtime, in a new application
 
 #Other Remarks
 ##Relationship with NPM
-Pillow is very different from NPM. NPM publishes packages to a central repository or installs packages retrieved from a central repository. Pillow takes a package and makes it compatible with the browser. It is possible to install ender packages or pillow packages with NPM and then 'compile' them with pillow.
+Pillow is very different from NPM. NPM publishes packages to a central repository or installs packages retrieved from a central repository. Pillow takes a package and makes it compatible with the browser. It is possible to install ender packages or pillow packages with NPM and then 'use' them with pillow.
 
 ##Relationship with NodeJS
 Pillow packages are written the same way as NodeJS packages. A NodeJS package can be made compatible with pillow (assuming all its dependencies are also available in pillow) by adding 'pillow' to the list of engines in the package.json file.
@@ -280,6 +280,11 @@ The other similar loaders that I know are:
 
 ##Browser Compatibility
 The client side of pillow consists of very little code but has only been tested so far in recent versions of safari, firefox and chrome (i.e. no validation on ie so far).
+
+##Why Another Loader
+I wrote pillow as a foundation for swallowapps. I needed a loader that would make multiple js modules per package possible (something I did not find in ender at the time), and that would let me bundle graphic assets with js files in a package: swallowapps applications are graphic applications that are fully contained (code and visual assets, a bit like a swf file) in a CommonJS package. I also wanted something like the application domains that exist in Flash to ease the process of unloading swallowapps application (if an app is loaded in its own domain, and that its specific dependencies are also loaded in this domain, when the app is removed nothing remains). So my final conclusion was that having a complete control on the package loading system was pretty much a requirement of my swallowapps project.
+
+I'm pretty certain that the existing loaders already solve the vast majority of normal use cases. But, if your project shares some of swallowapps' requirements, maybe you can take a look at pillow. And of course, thanks in advance for helping me improve this thing!
 
 #License
 MIT License
