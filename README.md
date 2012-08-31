@@ -79,6 +79,16 @@ Here is how pillow can run in Express or Connect:
 
 This lets you use the remake-on-request feature from within your own server. If you don't use Express, you can do the same from a bare bones node application:
 
+```javascript
+    var pillow = require('pillow'),
+        options = {
+            srcFolder: __dirname,
+            dstFolder: path.join(__dirname, 'generated')
+        },
+        mw = pillow.getMiddleWare(options),
+        srv = http.createServer(mw).listen(port, '0.0.0.0');
+```
+
 
 #Input: Packages
 Pillow takes packages in input and produces an output directory that can be served statically.
