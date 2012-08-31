@@ -4,7 +4,7 @@ Pillow scans directories for commonJS packages and makes them accessible in the 
 Pillow can operate from the command line, as a server or as a middleware. When running as a server or as a middleware it will remake the packages automatically every time they are loaded by http, only rebuilding what has actually changed.
 
 #Features
-* Multiple modules (.js files possibly in multiple source directories) per package
+* Multiple js files per package
 * Support for package resources (png, jpeg, gif, json, css, html, md)
 * Minify, dox and lint of source files
 * Runtime loading of packages
