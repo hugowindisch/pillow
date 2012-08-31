@@ -23,7 +23,7 @@ Pillow can operate from the command line, as a server or as a middleware. When r
 npm install -g pillow
 
 #Operation
-##Command line operation
+##Command Line Operation: pillowscan
 This assumes the package was installed globally. If not, pillowscan aliases to bin/pillowscan.js.
 
 **pillowscan [options] folder1 [folder2..foldern]**
@@ -53,7 +53,7 @@ Options:
 
 Will scan mypackages and its subdirectories and generate or update ./generated that will contain properly packaged sources and assets. The ./generated can be served statically.
 
-##Server operation
+##Server Operation: pillowserve
 This assumes the package was installed globally. If not, pillowserve aliases to bin/pillowserve.js.
 
 **pillowserve [options] folder1 [folder2..foldern]**
@@ -61,9 +61,24 @@ Will make all packages loadable at http://localhost:1337/make/packageName/packag
 
 (see pillowscan for the list of options)
 
-##Middleware operation
-(how to use pillow as a middleware (ex: from an Express application))
-TBD
+##Middleware Operation
+Here is how pillow can run in Express or Connect:
+```javascript
+    var app = require('express').createServer(),
+        pillow = require('pillow'),
+        options = {
+            srcFolder: __dirname,
+            dstFolder: path.join(__dirname, 'generated')
+        },
+        mw = pillow.getMiddleWare(options);
+    app.use(mw);
+
+    // Do something with the app
+    app.listen(1337);
+```
+
+This lets you use the remake-on-request feature from within your own server. If you don't use Express, you can do the same from a bare bones node application:
+
 
 #Input: Packages
 Pillow takes packages in input and produces an output directory that can be served statically.
@@ -71,15 +86,15 @@ Pillow takes packages in input and produces an output directory that can be serv
 Packages should follow the CommonJS Package 1.0 specification. The following fields of a package are currently used by pillow:
 
 * **name:** Lets you define the name of the package. You will then be able to require it using this name.
-* **dependencies:** Lets you define the dependencies of the package. When a package is loaded dynamically (using define.pillow.loadPackage), all its recursive dependencies will also be loaded. When an html file is created for a package, all its dependencies will have a link tag.
+* **dependencies:** Lets you define the dependencies of the package. When a package is loaded dynamically (using define.pillow.loadPackage), all its recursive dependencies will also be loaded. When an html file is created for a package (-html option), all its dependencies will have a link tag.
 * **testDependencies:** Lets you define special dependencies that are only needed when your package is used in test mode (i.e. with the -test switch, for generating a packageName.test.js file). This is expressed an array of package names.
 * **main:** Lets you define the main module of the package. If this is omitted, './lib/packageName.js' will be used by default.
 * **engines:** The pillow engine MUST be defined to tell pillow to use the package. Alternately, if the keywords field contains the 'ender' keyword, the package will also be used (but treated differently, only exporting the main file).
 * **keywords:** The 'ender' keyword designates an ender package. Other keywords are ignored.
 
-## Example of a pillow package
+## Example of a Pillow Package
 This would be the package.json file
-```
+```json
     {
         "name": "http",
         "version": "0.0.1",
@@ -102,7 +117,7 @@ This would be the package.json file
 
 And the source files are no different from normal nodeJS sourcefiles. For example, http.js could be something like:
 
-```
+```javascript
     var utils = require('utils'),
         // we could require another file from the same folder:
         another = require('./another'),
@@ -115,14 +130,19 @@ And the source files are no different from normal nodeJS sourcefiles. For exampl
     exports.hello = hello;
 ```
 
-
-##Special behaviors:
+##Special Behaviors:
 * **test folder**: all the files in the directory where the package.json file was found and all subdirectories of this directory are scanned, and all js files are included in the package. The only **exception** is the test folder. The test folder will only be scanned for js files if the -test switch is used. In this case, a packageName.test.js file will be generated and will contain
 
 * **ender packages**: ender packages are supported, but the 'ender.js' file is not used and ender specific runtime functions are not supported. You can install an ender package by doing npm install packageName and then adding the node_modules directory to the list of directories used by pillowscan or pillowserve. Note that only one js module is included, the 'main' module.
 
+##Existing Packages
++ Ender Packages: There already exists many different ender packages: bonzo, qwery and others.
 
-#Output: Structure of the generated folder
++ Node Packages: Since there is no special way of writing pillow packages (js files are the same as in Node, and there are no magic wrapper files of any kind), a lot of general purpose NodeJS packages should work directly with pillow. The only thing to do is to add the 'pillow' engine declaration to the package.json file.
+
++ Swallowapps Packages: Pillow is the foundation of my other project, swallowapps, that is roughly similar to the Flash (TM) authoring tool but that targets html5 (i.e. it is a no-css, no-html, graphic development tool targetting browsers). Inside the swallowapps project, there are many pillow packages (client side versions of Node's http, event, assert and url among others), and all swallowapps applications are packages. I will probably break the swallowapps projects in smaller parts (make the general purpose packages available independently) in the next months, and this will add to the list of existing packages.
+
+#Output: Structure of the Generated Folder
 The generated folder will have the following structure:
 
 ```
@@ -171,7 +191,7 @@ Assuming that your application wants to use 'myPackage1' and 'myPackage2', you c
 
 Note that this html file will need to be in the same folder ass pillow.js for this to work.
 
-##Automatically generating and html file
+##Automatically Generating an HTML File
 You can tell pillowscan or pillowserve to automatically generate an html file for your package with the -html switch. This html will be placed in your generated folder, will be named yourPackage.html, and will look like:
 
 ```html
@@ -200,7 +220,7 @@ You can tell pillowscan or pillowserve to automatically generate an html file fo
 ##Using Application Domains
 You can load additional packages at execution time by calling define.pillow.loadPackage. This function takes an application domain as its second argument. An application domain contains the 'exports' of all the modules that were loaded in it. Using application domains can be useful for managing dependencies (unloading them at execution time).
 
-###Runtime loading in the same application domain
+###Runtime Loading in the Same Application Domain
 This is how an additional package can be loaded at runtime, in the same application domain:
 
 ```html
@@ -216,7 +236,7 @@ This is how an additional package can be loaded at runtime, in the same applicat
         }
     );
 ```
-###Runtime loading in a different application domain
+###Runtime Loading in a Different Application Domain
 This is how an additional package can be loaded at runtime, in a new application domain (that, inherits from the topmost domain).
 
 ```html
@@ -237,17 +257,19 @@ This is how an additional package can be loaded at runtime, in a new application
 ```
 
 #Other Remarks
-
 ##Relationship with NPM
 Pillow is very different from NPM. NPM publishes packages to a central repository or installs packages retrieved from a central repository. Pillow takes a package and makes it compatible with the browser. It is possible to install ender packages or pillow packages with NPM and then 'compile' them with pillow.
 
 ##Relationship with NodeJS
 Pillow packages are written the same way as NodeJS packages. A NodeJS package can be made compatible with pillow (assuming all its dependencies are also available in pillow) by adding 'pillow' to the list of engines in the package.json file.
 
-##Other similar loaders
+##Other Similar Loaders
 The other similar loaders that I know are:
 + ender
 + requireJS
+
+##Browser Compatibility
+The client side of pillow consists of very little code but has only been tested so far in recent versions of safari, firefox and chrome (i.e. no validation on ie so far).
 
 #License
 MIT License
