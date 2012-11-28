@@ -131,7 +131,7 @@ function testGetMiddleWare(cb) {
     app.listen(1337);
     inServer(options, function (err) {
         // no more app.close...
-        process.nextTick(function () { process.exit(0); });
+        //process.nextTick(function () { process.exit(0); });
         cb(err);
     });
 }
